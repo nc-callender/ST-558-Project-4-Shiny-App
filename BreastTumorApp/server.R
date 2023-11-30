@@ -31,17 +31,23 @@ dimension <- rep(dimension_base, times = 10)
 
 variable_table <- data.frame(variable_names, characteristic, dimension )
 
+#Function for accessing variable name
+get_variable_name <- function (characteristic_of_interest = "Area", dimension_of_interest = "Mean"){
+    variable_name_desired<- variable_table %>% 
+    filter(characteristic == characteristic_of_interest) %>%
+    filter (dimension == dimension_of_interest) %>%
+    select (original_name) %>%
+    mutate (Diagnosis = "Diagnosis")
+}
+
 # Begin server code
 shinyServer(function(input, output, session) {
 
 # Output for numeric summary tab
     output$numeric_summary <- renderTable({
         #get variable name
-        variable_for_summ <- variable_table %>% 
-            filter(characteristic == input$char_of_interest_ns) %>%
-            filter (dimension == input$dim_of_interest_ns) %>%
-            select (original_name) %>%
-            mutate (Diagnosis = "Diagnosis")
+        variable_for_summ <-get_variable_name (characteristic_of_interest = input$char_of_interest_ns,
+                                               dimension_of_interest = input$dim_of_interest_ns)
 
         #Select variable name and y, label y for plotting
         table_ns <- tumor_data %>% 
@@ -89,7 +95,7 @@ table_ns
 })  # end of numeric summary section
   
 
-    # Output for graphical summary tab
+# Output for graphical summary tab
     output$graphical_summary <- renderPlotly({
         #bar plot
         if (input$type_of_graph == "Bar Plot"){
@@ -98,32 +104,61 @@ table_ns
         }
         #histogram
         #determine variable name using lookup table
-        variable_for_graph <- variable_table %>% 
-        filter(characteristic == input$char_of_interest_graph) %>%
-        filter (dimension == input$dim_of_interest_graph) %>%
-        select (original_name) %>%
-        mutate (Diagnosis = "Diagnosis")
-      
+        variable_for_hist <- get_variable_name (characteristic_of_interest = input$char_of_interest_hist,
+                                                 dimension_of_interest = input$dim_of_interest_hist)
+
       #Select variable name and y, label y for plotting
-      table_graph <- tumor_data %>% 
-        select_({{variable_for_graph[1,1]}},{{variable_for_graph[1,2]}}) 
-      colnames(table_graph) <- c("x","Diagnosis")
+        table_hist <- tumor_data %>% 
+            select_({{variable_for_hist[1,1]}},{{variable_for_hist[1,2]}}) 
+        colnames(table_hist) <- c("x","Diagnosis")
       
       #make label for x
-      x_label_hist <- paste0 (input$char_of_interest_graph, ": ", input$dim_of_interest_graph)
-      # make histogram
+      x_label_hist <- paste0 (input$char_of_interest_hist, ": ", input$dim_of_interest_hist)
+
+      # make graph (histogram)
         if (input$type_of_graph == "Histogram"){
-            if  (input$grouping_graph){
-              graph1 <- ggplot(data = table_graph, aes (x = x)) +
-                geom_histogram(bins=input$bins_hist, aes(fill = Diagnosis), position = "dodge")
+            if  (input$grouping_hist){
+              graph1 <- ggplot(data = table_hist, aes (x = x)) +
+                geom_histogram(bins=input$bins_hist, aes(fill = Diagnosis), position = "dodge") + 
+                labs(x = x_label_hist)
             }
             else{
-            graph1 <- ggplot(data = table_graph, aes (x = x)) +
+            graph1 <- ggplot(data = table_hist, aes (x = x)) +
                 geom_histogram(bins=input$bins_hist, fill="cyan4") +
                 labs(x = x_label_hist)
             }
-        }
+        } #end histogram
 
+        #box
+        #determine variable name using lookup table
+        variable_for_box <- get_variable_name (characteristic_of_interest = input$char_of_interest_box,
+                                                  dimension_of_interest = input$dim_of_interest_box)
+
+        #Select variable name and y, label y for plotting
+        table_box<- tumor_data %>% 
+            select_({{variable_for_box[1,1]}},{{variable_for_box[1,2]}}) 
+        colnames(table_box) <- c("y","Diagnosis")
+      
+        #make label for x
+        y_label_box <- paste0 (input$char_of_interest_box, ": ", input$dim_of_interest_box)
+      
+        # make graph (box plot)
+        if (input$type_of_graph == "Box Plot"){
+            if  (input$grouping_box){
+                graph1 <- ggplot(data = table_box, aes (x= Diagnosis, y = y)) +
+                geom_boxplot(aes(fill = Diagnosis), position = "dodge") + 
+                labs(y = y_label_box, x="Diagnosis")
+            }
+            else{
+                graph1 <- ggplot(data = table_box, aes (y = y)) +
+                geom_boxplot(fill="cyan4") +
+                labs(y = y_label_box) +
+                theme(axis.text.x = element_blank(), axis.ticks.x = element_blank())
+            }
+        } #end box
+        
+
+      
       
       ggplotly(graph1)
     })  # end of graphical summary section
