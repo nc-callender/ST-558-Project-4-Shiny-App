@@ -101,6 +101,7 @@ table_ns
         if (input$type_of_graph == "Bar Plot"){
             graph1 <- ggplot(data = tumor_data, aes (x = Diagnosis)) +
                 geom_bar(aes(fill=Diagnosis))
+        graph <- ggplotly(graph1) %>% layout(legend = list(x = 0.865, y = 1.0))
         }
         #histogram
         #determine variable name using lookup table
@@ -120,13 +121,15 @@ table_ns
             if  (input$grouping_hist){
               graph1 <- ggplot(data = table_hist, aes (x = x)) +
                 geom_histogram(bins=input$bins_hist, aes(fill = Diagnosis), position = "dodge") + 
-                labs(x = x_label_hist)
+                labs(x = x_label_hist) +
+                theme(legend.position = "bottom")
             }
             else{
             graph1 <- ggplot(data = table_hist, aes (x = x)) +
                 geom_histogram(bins=input$bins_hist, fill="cyan4") +
                 labs(x = x_label_hist)
             }
+        graph <- ggplotly(graph1) %>% layout(legend = list(x = 0.865, y = 1.0))
         } #end histogram
 
         #box
@@ -157,10 +160,52 @@ table_ns
             }
         } #end box
         
+        #scatter plot
+        #determine variable names using lookup table
+        variable_for_scatter_x <- get_variable_name (
+            characteristic_of_interest = input$char_of_interest_scatter_x,
+            dimension_of_interest = input$dim_of_interest_scatter_x)
+        variable_for_scatter_y <- get_variable_name (
+          characteristic_of_interest = input$char_of_interest_scatter_y,
+          dimension_of_interest = input$dim_of_interest_scatter_y)
 
+        #Select variable names and diagnosis and make axis labels
+        table_scatter <- tumor_data %>% 
+          select_({{variable_for_scatter_x[1,1]}},
+                  {{variable_for_scatter_y[1,1]}},
+                  {{variable_for_scatter_y[1,2]}}) 
+        colnames(table_scatter) <- c("x", "y", "Diagnosis")
+
+                #make label for x
+        x_label_scatter <- paste0 (input$char_of_interest_scatter_x, ": ", input$dim_of_interest_scatter_x)
+        y_label_scatter <- paste0 (input$char_of_interest_scatter_y, ": ", input$dim_of_interest_scatter_y)
       
-      
-      ggplotly(graph1)
+        # make graph (scatter plot)
+        if (input$type_of_graph == "Scatter Plot"){
+            if  (input$grouping_scatter){
+                graph1 <- ggplot(data = table_scatter, aes (x = x, y = y)) +
+                          geom_point(aes(color = Diagnosis)) + 
+                          labs(x = x_label_scatter,y = y_label_scatter ) +
+                          theme(legend.position = "bottom")
+
+                if (input$trendline_scatter){
+                    graph1 <- graph1 + geom_smooth (method = lm, 
+                                                    aes(group = Diagnosis, color = Diagnosis), 
+                                                    se = FALSE)
+                }
+            }
+            else{
+                graph1 <- ggplot(data = table_scatter, aes (x = x, y = y)) +
+                    geom_point() +
+                    labs(x = x_label_scatter,y = y_label_scatter )
+
+                if (input$trendline_scatter){
+                      graph1 <- graph1 + geom_smooth (method = lm, se = FALSE)
+                }
+            } 
+           graph <- ggplotly(graph1) %>% layout(legend = list(orientation = "h", x = 0, y = 1.0))
+        } #end scatter
+      graph 
     })  # end of graphical summary section
     
     
