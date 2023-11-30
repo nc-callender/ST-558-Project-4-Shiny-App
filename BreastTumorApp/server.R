@@ -14,12 +14,14 @@ library(plotly)
 library(tidyverse)
 
 #Import Data Set
-tumor_data <- read.csv("brca.csv")
+tumor_data <- read.csv("brca.csv") %>% rename ("Diagnosis" = y)
+tumor_data $Diagnosis <-factor(tumor_data $Diagnosis, levels=c("B", "M"), 
+                            labels = c("Benign", "Malignant"))
 
 #Make a lookup table for variable names relating to characteristic and dimension
 variable_names <- as_tibble(colnames(tumor_data)) 
 colnames(variable_names) <- c("original_name")
-variable_names <- variable_names %>% filter ((original_name != "X" & original_name != "y"))
+variable_names <- variable_names %>% filter ((original_name != "X" & original_name != "Diagnosis"))
 
 characteristic_base <- c("Radius", "Texture", "Perimeter", "Area", "Smoothness", "Compactness", "Concavity", "Concave Points", "Symmetry", "Fractal Dimension")
 characteristic <- rep(characteristic_base,times  =3)
@@ -39,14 +41,13 @@ shinyServer(function(input, output, session) {
             filter(characteristic == input$char_of_interest_ns) %>%
             filter (dimension == input$dim_of_interest_ns) %>%
             select (original_name) %>%
-            mutate (y = "y")
+            mutate (Diagnosis = "Diagnosis")
 
         #Select variable name and y, label y for plotting
         table_ns <- tumor_data %>% 
             select_({{variable_for_summ[1,1]}},{{variable_for_summ[1,2]}}) 
             colnames(table_ns) <- c("x","Diagnosis")
-        table_ns$Diagnosis <-factor(table_ns$Diagnosis, levels=c("B", "M"), 
-                            labels = c("Benign", "Malignant"))
+
         #Make table according to if filtering desired, grouping desired and what summary is requested.
         if(input$filtering_ns=="Malignant and Benign"){
             if(input$grouping){
@@ -87,7 +88,53 @@ shinyServer(function(input, output, session) {
 table_ns 
 })  # end of numeric summary section
   
-      output$test_text <- renderText({
+
+    # Output for graphical summary tab
+    output$graphical_summary <- renderPlotly({
+        #bar plot
+        if (input$type_of_graph == "Bar Plot"){
+            graph1 <- ggplot(data = tumor_data, aes (x = Diagnosis)) +
+                geom_bar(aes(fill=Diagnosis))
+        }
+        #histogram
+        #determine variable name using lookup table
+        variable_for_graph <- variable_table %>% 
+        filter(characteristic == input$char_of_interest_graph) %>%
+        filter (dimension == input$dim_of_interest_graph) %>%
+        select (original_name) %>%
+        mutate (Diagnosis = "Diagnosis")
+      
+      #Select variable name and y, label y for plotting
+      table_graph <- tumor_data %>% 
+        select_({{variable_for_graph[1,1]}},{{variable_for_graph[1,2]}}) 
+      colnames(table_graph) <- c("x","Diagnosis")
+      
+      #make label for x
+      x_label_hist <- paste0 (input$char_of_interest_graph, ": ", input$dim_of_interest_graph)
+      # make histogram
+        if (input$type_of_graph == "Histogram"){
+            if  (input$grouping_graph){
+              graph1 <- ggplot(data = table_graph, aes (x = x)) +
+                geom_histogram(bins=input$bins_hist, aes(fill = Diagnosis), position = "dodge")
+            }
+            else{
+            graph1 <- ggplot(data = table_graph, aes (x = x)) +
+                geom_histogram(bins=input$bins_hist, fill="cyan4") +
+                labs(x = x_label_hist)
+            }
+        }
+
+      
+      ggplotly(graph1)
+    })  # end of graphical summary section
+    
+    
+    
+    
+    
+    
+    
+          output$test_text <- renderText({
         #get variable name
         variable_for_summ <- variable_table %>% 
             filter(characteristic == input$char_of_interest_ns) %>%
