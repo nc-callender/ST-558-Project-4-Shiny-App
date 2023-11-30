@@ -31,13 +31,16 @@ ui<-dashboardPage(skin = "blue",
                   br(),
                   a(href = "https://www.kaggle.com/datasets/utkarshx27/breast-cancer-wisconsin-diagnostic-dataset","The dataset entitled  “Breast Cancer Wisconsin Diagnostic Dataset” was downloaded from here."),
                   br(),
-                  p("The dataset contains columns related to the radius, perimeter, area, smoothness, compactness, concavity, number of concave point, symmetry and fractal dimension.  For each of these characteristics., the mean, standard error, and “worst” measurement are available.  The dataset also contains a factor denoting whether the mass was malignant or benign."),
+                  br(),
+                  p("The dataset contains columns related to the radius, perimeter, area, smoothness, compactness, concavity, number of concave point, symmetry and fractal dimension."),  
+                  p("For each of these characteristics., the mean, standard error, and “worst” measurement are available."), 
+                  p("The dataset also contains a factor denoting whether the mass was malignant or benign."),
                   br(),
                   
                   p("There are three main tabs available:"),
                   p("About:  Describes the characteristics of the data and app."),
                   p("Data Exploration:  Allows the user to make numerical summaries and graphs to investigate how the variables interact with each other and with whether the tumor was benign or malignant."),
-                  p("Modelling:  Allows the user to model the data using generalize linear regression or random forest.  "),
+                  p("Modelling:  Allows the user to model the data using generalize linear regression or random forest.  The user can then use the model to make predictions."),
                   br(),
                   tags$img(src = "pinkribbon.jpg", width = 160), 
                   tags$img(src = "pinkribbon.jpg", width = 160),
@@ -134,19 +137,39 @@ ui<-dashboardPage(skin = "blue",
                                                            "Do you want to color by malignant versus benign?")),
                             conditionalPanel(condition = "input.type_of_graph == 'Scatter Plot'",
                                              checkboxInput("trendline_scatter",
-                                                           "Do you want to a linear regression line?"))),
+                                                           "Do you want to a linear regression line?")),
+                        #End for scatter plot conditionals; Begin corrplot plot conditionals                        
+                        conditionalPanel(condition = "input.type_of_graph == 'Correlation Plot'",
+                                         selectInput("filtering_corrplot",
+                                                     "Select whether to filter the data.",
+                                                     c("Malignant and Benign", "Malignant", "Benign"))),
+                        conditionalPanel(condition = "input.type_of_graph == 'Correlation Plot'",
+                                         selectInput("dim_or_parameter_corrplot",
+                                                     "Compare across parameter or dimension?",
+                                                     c("Parameter", "Dimension"))),
+                        conditionalPanel(condition = "input.dim_or_parameter_corrplot == 'Parameter'",
+                                         selectInput("dim_corrplot",
+                                                     "Dimension to be used",
+                                                     c("Mean", "Std Error", "Worst"))),
+                        conditionalPanel(condition = "input.dim_or_parameter_corrplot == 'Dimension'",
+                                         selectInput("parameter_corrplot",
+                                                     "Parameter to be used",
+                                                     c("Radius", "Texture", "Perimeter", "Area", "Smoothness",
+                                                       "Compactness", "Concavity", "Concave Points", "Symmetry",
+                                                       "Fractal Dimension"))),
+), #end tabPanel Graphical summaries
                         mainPanel(box(width = 12, plotlyOutput("graphical_summary"))))
-                ),
-            ),
+                ), #end tabset panel for data exploration
+            ), #end tabItem- data exploration
             tabItem("modeling",
                 tabsetPanel(
                     tabPanel("Modeling Info",fluidPage(h1("model info"))),
                     tabPanel("Model Fitting", fluidPage(h1("model fitting"))),
                     tabPanel("Prediction", fluidPage(h1("model predict")))
-                )
+                )#end tabsetpanel for modelling
                 
-            )
-    )
+            )#end tabItem-modelling
+    ) #end tabitems
     
-)
-)
+) #end dashboard body
+) #end dashboard page

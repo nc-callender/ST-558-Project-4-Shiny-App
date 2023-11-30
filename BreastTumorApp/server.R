@@ -12,6 +12,9 @@ library(shinydashboard)
 library(DT)
 library(plotly)
 library(tidyverse)
+library(corrplot)
+library(caret)
+library(ggcorrplot)
 
 #Import Data Set
 tumor_data <- read.csv("brca.csv") %>% rename ("Diagnosis" = y)
@@ -158,6 +161,7 @@ table_ns
                 labs(y = y_label_box) +
                 theme(axis.text.x = element_blank(), axis.ticks.x = element_blank())
             }
+          graph <- ggplotly(graph1) %>% layout(legend = list(x = 0.865, y = 1.0))
         } #end box
         
         #scatter plot
@@ -205,7 +209,45 @@ table_ns
             } 
            graph <- ggplotly(graph1) %>% layout(legend = list(orientation = "h", x = 0, y = 1.0))
         } #end scatter
-      graph 
+        
+        #begin corrplot
+        if (input$filtering_corrplot == "Malignant and Benign") {
+           table_corrplot <- tumor_data %>% select (2:31)
+        }
+        else {
+            table_corrplot <-tumor_data %>% filter(Diagnosis == input$filtering_corrplot) %>% select (2:31)
+        }
+        if (input$dim_or_parameter_corrplot == "Parameter"){
+          if(input$dim_corrplot == "Mean") {table_corrplot <-table_corrplot %>% select(1:10)}
+          else if(input$dim_corrplot == "Std Error") {table_corrplot <-table_corrplot %>% select(11:20)}
+          else  {table_corrplot <-table_corrplot %>% select(21:30)}
+          colnames(table_corrplot) <- c("Radius", "Texture", "Perimeter", "Area", "Smoothness",
+                                         "Compactness", "Concavity", "Concave Points", "Symmetry",
+                                         "Frac. Dim.")
+          
+        }
+        
+        else if (input$dim_or_parameter_corrplot == "Dimension"){
+          if(input$parameter_corrplot == "Radius") {table_corrplot <- table_corrplot %>% select(1,11,21)}
+          else if(input$parameter_corrplot == "Texture") {table_corrplot <- table_corrplot %>% select(2,12,22)}
+          else if(input$parameter_corrplot == "Area") {table_corrplot <- table_corrplot %>% select(3,13,23)}
+          else if(input$parameter_corrplot == "Perimeter") {table_corrplot <- table_corrplot %>% select(4,14,24)}
+          else if(input$parameter_corrplot == "Smoothness") {table_corrplot <- table_corrplot %>% select(5,15,25)}
+          else if(input$parameter_corrplot == "Compactness") {table_corrplot <- table_corrplot %>% select(6,16,26)}
+          else if(input$parameter_corrplot == "Concavity") {table_corrplot <- table_corrplot %>% select(7,17,27)}
+          else if(input$parameter_corrplot == "Concave Points") {table_corrplot <- table_corrplot %>% select(8,18,28)}
+          else if(input$parameter_corrplot == "Symmetry") {table_corrplot <- table_corrplot %>% select(9,19,29)}
+          else  {table_corrplot <-table_corrplot %>% select(10,20,30)}
+
+          colnames(table_corrplot) <- c("Mean", "Std Error", "Worst")          
+        }
+        if (input$type_of_graph == "Correlation Plot"){
+        corr <- cor(table_corrplot, method = "spearman")
+        graph1 <-ggcorrplot(corr, lab = TRUE, tl.cex = 8, lab_size = 2,  show.legend = FALSE)
+        graph <- ggplotly(graph1) %>% layout(legend = list(orientation = "h", x = 0, y = 1.0))
+        }
+
+        graph 
     })  # end of graphical summary section
     
     
