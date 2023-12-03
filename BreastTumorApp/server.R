@@ -15,6 +15,7 @@ library(tidyverse)
 library(corrplot)
 library(caret)
 library(ggcorrplot)
+library(randomForest)
 
 #Import Data Set
 tumor_data <- read.csv("brca.csv") %>% rename ("Diagnosis" = y)
@@ -180,7 +181,7 @@ table_ns
                   {{variable_for_scatter_y[1,2]}}) 
         colnames(table_scatter) <- c("x", "y", "Diagnosis")
 
-                #make label for x
+        #make label for x and y
         x_label_scatter <- paste0 (input$char_of_interest_scatter_x, ": ", input$dim_of_interest_scatter_x)
         y_label_scatter <- paste0 (input$char_of_interest_scatter_y, ": ", input$dim_of_interest_scatter_y)
       
@@ -249,14 +250,107 @@ table_ns
 
         graph 
     })  # end of graphical summary section
+
+#Begin Modelling 
+    #Data splitting using caret
+
+    observe({
+      input$data_split 
+    #split dataset
+     set.seed(121) #reproducibility of splitting
+        trainIndex <-createDataPartition(tumor_data$Diagnosis, input$data_split, list=FALSE)
+        tumor_data_train <- tumor_data[trainIndex,]
+        tumor_data_test <- tumor_data[-trainIndex,]
+
+        #Equation formula glm
+        outcome <- "Diagnosis"
+        variables_glm <- c('+x.perimeter_mean','x.concavity_mean','x.compactness_se', " +",  'x.symmetry_mean', "+0")
+        formula_glm <- as.formula(paste (outcome, 
+                                         paste(variables_glm, collapse = " + "), 
+                                         sep = " ~ "))
+
+        #glm model       
+        set.seed(121) #reproducibility for cross validation
+        fit_glm <- train(formula_glm, 
+                         data = tumor_data_train, 
+                         method = "glm", 
+                         family = "binomial", 
+                         preProcess = c("center", "scale"),
+                         trControl= trainControl(method="cv", number=5)
+        )
+        #output summary for glm
+        output$glm_summary <- renderPrint({summary(fit_glm)})
+
+        #output accuracy statement for glm
+        output$glm_accuracy_test <- renderText({
+            paste0("GLM Model accuracy on the training set is ", round(fit_glm[[4]][2]*100,1) , "%.")
+           })
+        
+        #Equation formula random forest
+        variables_rf <- c('x.perimeter_mean','x.concavity_mean','x.compactness_se', 'x.symmetry_mean')
+        formula_rf <- as.formula(paste (outcome, 
+                                        paste(variables_rf, collapse = " + "), 
+                                        sep = " ~ "))        
+
+        #Tuning grid for random forest
+        mtrys <- seq(2, input$mtry, by = 1)
+        
+        #Random Forest Model
+        set.seed(1331) #reproducibility for cross validation
+#        fit_rf <- train(formula_rf, 
+#                        data = tumor_data_train, 
+#                        method = "rf", 
+#                        family = "binomial", 
+#                        preProcess = c("center", "scale"),
+#                        trControl= trainControl(method = "cv", number = input$cv_number),
+#                        tuneGrid = expand.grid (mtry = mtrys)
+#        )
+        #output mtry statement for random forest
+        output$rf_mtry <- renderText({
+          paste0("The optimized value for the number of variables randomly chosen at each branching (mtry) was ",
+                  fit_rf$bestTune$mtry , ".")
+        })
+
+        #output accuracy statement for random forest
+        output$rf_accuracy <- renderText({
+            #Pull accuracy from fit results
+            accuracy_rf <- fit_rf$results %>% select(mtry, Accuracy) %>% 
+                filter(mtry == fit_rf$bestTune$mtry) %>% select (Accuracy)
+            paste0("The accuracy of the random forest model on the training set", 
+                   "using the optimized mtry was ", round((accuracy_rf*100),3), "%.")
+        })
+
+        #Generate variable importance plot. Diagnosis will need converting to numeric.
+#        tumor_data_train_2 <- tumor_data_train  %>% 
+#            mutate(y_bin = if_else(Diagnosis=="M",1,0))
+
+#                outcome2 <- "y_bin"
+        
+#        formula_rf_2 <- as.formula(paste (outcome2, 
+#                                          paste(variables_rf, collapse = " + "), 
+#                                          sep = " ~ "))
+#        tumor_rf<-randomForest(formula_rf_2, data=tumor_data_train_2, mtry=fit_rf$bestTune$mtry)
+                     
+    
+#        output$rf_var_imp <- renderPlot({
+#        varImpPlot(tumor_rf)
+#        })
+        
+ 
     
     
-    
-    
-    
-    
-    
-          output$test_text <- renderText({
+        output$test_text2 <- renderPrint({
+        if (input$size_dim_glm != "None"){size_var_glm <- paste0(input$size_glm, input$size_dim_glm)}
+            else {size_var_glm <- ("+")}
+              
+        outcome <- "Diagnosis"
+        variables_glm2 <- c(size_var_glm, input$texture_dim_glm, input$smooth_dim_glm, input$compact_dim_glm,
+                            input$concave_dim_glm, input$symm_dim_glm)
+             formula_glm2 <- as.formula(paste (outcome, 
+                                              paste(variables_glm2, collapse=" "), 
+                                              sep = " ~ "))
+             formula_glm2
+          })
         #get variable name
         variable_for_summ <- variable_table %>% 
             filter(characteristic == input$char_of_interest_ns) %>%

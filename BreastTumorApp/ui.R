@@ -1,8 +1,10 @@
 
 library(shiny)
 library(shinydashboard)
+library(shinyWidgets)
 library(DT)
 library(plotly)
+library(shinybusy)
 
 # Define UI for application that draws a histogram
 ui<-dashboardPage(skin = "blue",
@@ -147,11 +149,13 @@ ui<-dashboardPage(skin = "blue",
                                          selectInput("dim_or_parameter_corrplot",
                                                      "Compare across parameter or dimension?",
                                                      c("Parameter", "Dimension"))),
-                        conditionalPanel(condition = "input.dim_or_parameter_corrplot == 'Parameter'",
+                        conditionalPanel(condition = "(input.dim_or_parameter_corrplot == 'Parameter') 
+                                                      & (input.type_of_graph == 'Correlation Plot')",
                                          selectInput("dim_corrplot",
                                                      "Dimension to be used",
                                                      c("Mean", "Std Error", "Worst"))),
-                        conditionalPanel(condition = "input.dim_or_parameter_corrplot == 'Dimension'",
+                        conditionalPanel(condition = "(input.dim_or_parameter_corrplot == 'Dimension')&
+                                                      (input.type_of_graph == 'Correlation Plot')",
                                          selectInput("parameter_corrplot",
                                                      "Parameter to be used",
                                                      c("Radius", "Texture", "Perimeter", "Area", "Smoothness",
@@ -163,8 +167,84 @@ ui<-dashboardPage(skin = "blue",
             ), #end tabItem- data exploration
             tabItem("modeling",
                 tabsetPanel(
-                    tabPanel("Modeling Info",fluidPage(h1("model info"))),
-                    tabPanel("Model Fitting", fluidPage(h1("model fitting"))),
+                    tabPanel("Modeling Info",box(width=12, h1("Generalized Linear Regression"),
+                            p("Generalized Linear Regression  is a technique that can be used to perform Logistic Regression a on dataset where the response (dependent) variable is binary. The response variable is fit as a logistic sigmoid function of independent variables which can be continuous or binary. The general form of the equation is"),
+                            withMathJax(helpText("$$ y = \\frac{1}{1+e^{-X}}$$")),
+                            p("where X is a vector containing all the predictor variables. The range of this function is 0-1, which works well with a binary dependent variable."),
+p("The logistic function is linked to the X vector with the logit function."), br(),
+                            withMathJax(helpText("$$log\\frac{p}{1-p}=\\beta_0 + \\beta_1x_1 + \\beta_2x_2+ ...+ \\beta_px_p$$")),
+), #end box1
+                             box(width=12, h1("Random Forest"), p("Random forest is a tree-based method of modeling.  It uses bootstrap/ aggregating (bagging) and feature randomness to create an uncorrelated forest of decision trees. It is the feature randomness that distinguishes the random forest model from other types of classification tree."), 
+                               p("While classification trees are prone to overfitting the data (making it conform too tightly to the training set), that risk is reduced in a random forest model due to the averaging of results from uncorrelated trees. Another advantage of random forest over classification trees is that it is easier to evaluate the importance of different predictor variables.  Disadvantages of random forests are that they models produced are difficult to interpret and computationally expensive."),
+                               p("The fitting here is performed using the caret package.  The effectiveness of the random forest model relates to the number of random variables that are chosen at each iteration.  Cross validation will be used to optimize that number.  The user can specify the number of data partitions to use in the cross validation and a maximum number of random variables chosen at each iteration. ")
+                               
+                                                                  ) #end box2
+                             )#end tabPanel-modeling info
+                    ,
+                    tabPanel("Model Fitting", fluidRow(column(6,                         box(width=12, strong("Generalized Linear Regression Input"),
+                                                                                             p("Modelling works best when there is not a large amount of correlation between predictors. For that reason, some characteristics are not being used for modelling. For size, the user can pick between the three related characteristics: radius, perimeter, and area. For each tumor characteristic below, select the dimension to use in the model."),
+fluidRow(
+    column(5, 
+         pickerInput("size_glm", "Size Characteristic", 
+                     c("Radius" ="x.radius", "Area"="x.area", "Perimeter"="x.perimeter"), 
+                     width = "fit", selected ="x.perimeter"),
+         pickerInput("size_dim_glm", "Size", c("None", "Mean"="_mean", "Std Error"="_se","Worst"="_worst"),
+                    width = "fit", selected = "_mean"), 
+         pickerInput("texture_dim_glm", "Texture", c("None"="+0 ", "Mean"="+x.texture_mean", 
+                                                    "Std Error" = "+x.texture_se", "Worst" = "+x.texture_worst"),
+                   width = "fit", selected = "+x.texture_mean"), 
+        pickerInput("smooth_dim_glm", "Smoothness", c("None"="+0", "Mean"="+x.smoothness_mean", 
+                                                      "Std Error"="+x.smoothness_se","Worst"="+x.smoothness_worst"),
+                    width = "fit", selected = "+x.smoothness_mean")),
+    column(5,offset = 1, 
+           pickerInput("compact_dim_glm", "Compactness", c("None"="+0", "Mean"="+x.compactness_mean", 
+                                                           "Std Error"="+x.compactness_se", 
+                                                           "Worst"="+x.compactness_worst"), 
+                    width = "fit", selected = "+x.compactness_worst"),                       
+           pickerInput("concave_dim_glm", "Concavity", c("None"="+0", "Mean"="+x.concavity_mean", 
+                                                        "Std Error"="+x.concavity_se", "Worst"="+x.concavity_worst"),
+                     width = "fit", selected = "+x.concavity_mean"), 
+                                                                                                             pickerInput("symm_dim_glm", "Symmetry", c("None"="+0", "Mean"="+x.symmetry_mean", "Std Error"="+x.symmetry_se", "Worst"="+x.symmetry_worst"),
+                                                                                                                         width  ="fit", selected = "+x.symmetry_se") )#end rt column
+                                                                                             ),#end row 
+                    ), #end box for GLM input
+                    box(width=12, strong("Random Forest Input"),
+                        p("Modelling works best when there is not a large amount of correlation between predictors. For that reason, some characteristics are not being used for modelling. For size, the user can pick between the three related characteristics: radius, perimeter, and area."),
+                        p("For each tumor characteristic below, select the dimension to use in the model. Also select the number of partitions for cross validation and the number of randomly selected variables to include at each branching of the random forest."),
+                        fluidRow(column(5, pickerInput("size_rf", "Size Characteristic", 
+                                                       c("Radius", "Area", "Perimeter"), width = "fit", selected = "Perimeter"),
+                                        pickerInput("size_dim_rf", "Size", c("None", "Mean", "Std Error", "Worst"),
+                                                    width = "fit", selected = "Worst"), 
+                                        pickerInput("texture_dim_rf", "Texture", c("None", "Mean", "Std Error", "Worst"),
+                                                    width = "fit"), 
+                                        pickerInput("smooth_dim_rf", "Smoothness", c("None", "Mean", "Std Error", "Worst"),
+                                                    width = "fit")),
+                                 column(5,offset = 1, pickerInput("compact_dim_rf", "Compactness", 
+                                                                  c("None", "Mean", "Std Error", "Worst"), width = "fit", selected = "Std Error"), 
+                                        pickerInput("concave_dim_rf", "Concavity", c("None", "Mean", "Std Error", "Worst"),
+                                                    width = "fit", selected = "Mean"), 
+                                        pickerInput("symm_dim_rf", "Symmetry", c("None", "Mean", "Std Error", "Worst"),
+                                                    width  ="fit", selected = "Mean") )#end rt column
+                        ),#end row 
+                        fluidRow(column(5,sliderInput("cv_number", "How many partitions for cross validation?", min = 2, max = 10, value = 5)),column(5, offset= 1,
+                                                                                                                                                      sliderInput("mtry", "How many randomly selected variable introduced at each iteration?", min = 1, max = 3, value = 2)))
+                    ), #end box for RF input,
+                    
+                    ),#end lt column
+                                                       column(6,add_busy_spinner(spin="fading-circle"),box(width=12, strong("Split the Data Set"),
+                                                                    p("The data set needs splitting into two parts, one for training and one for testing."),
+                                                                    sliderInput("data_split", "What percent of the data do you want to use for training?", min = 50, max = 95, value = 80, step = 5),
+                                                                    strong("Compare Model Input"),
+                                                                    p("Select which model (or both) to use. If both are selected then accuracy results will be reported."
+                                                                    ),
+                                                                    pickerInput("model_to_use", "Model to Use", c("Generalized Linear Regression", "Random Forest", "Both"),
+                                                                                width  ="fit", selected = "Generalized Linear Regression"),
+                                                                    strong("Generalized Linear Regression Model"),p("Here for GLM output"),verbatimTextOutput("glm_summary"),  textOutput("glm_accuracy_test"),strong("Generalized Linear Regression Model"),textOutput("rf_mtry"), textOutput("rf_accuracy"), plotOutput("rf_var_imp"), verbatimTextOutput("test_text2")
+                                                                    
+                                                       ), #end box for glm ouput
+                                                       )#end rt column
+                                                       )#end fluid row
+                             ), #end tabPanel Modelling
                     tabPanel("Prediction", fluidPage(h1("model predict")))
                 )#end tabsetpanel for modelling
                 
