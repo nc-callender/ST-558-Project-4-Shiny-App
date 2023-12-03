@@ -182,7 +182,7 @@ p("The logistic function is linked to the X vector with the logit function."), b
                              )#end tabPanel-modeling info
                     ,
                     tabPanel("Model Fitting", fluidRow(column(6,                         box(width=12, strong("Generalized Linear Regression Input"),
-                                                                                             p("Modelling works best when there is not a large amount of correlation between predictors. For that reason, some characteristics are not being used for modelling. For size, the user can pick between the three related characteristics: radius, perimeter, and area. For each tumor characteristic below, select the dimension to use in the model."),
+                                                                                             p("Modelling works best when there is not a large amount of correlation between predictors. For that reason, the user can pick only one of the three related characteristics: radius, perimeter, and area. For each tumor characteristic below, select the dimension to use in the model."),
 fluidRow(
     column(5, 
          pickerInput("size_glm", "Size Characteristic", 
@@ -218,23 +218,36 @@ fluidRow(
                     box(width=12, strong("Random Forest Input"),
                         p("Modelling works best when there is not a large amount of correlation between predictors. For that reason, some characteristics are not being used for modelling. For size, the user can pick between the three related characteristics: radius, perimeter, and area."),
                         p("For each tumor characteristic below, select the dimension to use in the model. Also select the number of partitions for cross validation and the number of randomly selected variables to include at each branching of the random forest."),
-                        fluidRow(column(5, pickerInput("size_rf", "Size Characteristic", 
-                                                       c("Radius", "Area", "Perimeter"), width = "fit", selected = "Perimeter"),
-                                        pickerInput("size_dim_rf", "Size", c("None", "Mean", "Std Error", "Worst"),
-                                                    width = "fit", selected = "Worst"), 
-                                        pickerInput("texture_dim_rf", "Texture", c("None", "Mean", "Std Error", "Worst"),
-                                                    width = "fit"), 
-                                        pickerInput("smooth_dim_rf", "Smoothness", c("None", "Mean", "Std Error", "Worst"),
-                                                    width = "fit")),
-                                 column(5,offset = 1, pickerInput("compact_dim_rf", "Compactness", 
-                                                                  c("None", "Mean", "Std Error", "Worst"), width = "fit", selected = "Std Error"), 
-                                        pickerInput("concave_dim_rf", "Concavity", c("None", "Mean", "Std Error", "Worst"),
-                                                    width = "fit", selected = "Mean"), 
-                                        pickerInput("symm_dim_rf", "Symmetry", c("None", "Mean", "Std Error", "Worst"),
-                                                    width  ="fit", selected = "Mean") )#end rt column
+                        fluidRow(column(5,          pickerInput("size_rf", "Size Characteristic", 
+                                                                c("Radius" ="x.radius", "Area"="x.area", "Perimeter"="x.perimeter"), 
+                                                                width = "fit", selected ="x.area"),
+                                        pickerInput("size_dim_rf", "Size", c("None", "Mean"="_mean", "Std Error"="_se","Worst"="_worst"),
+                                                    width = "fit", selected = "_worst"), 
+                                        pickerInput("texture_dim_rf", "Texture", c("None"="+0 ", "Mean"="+x.texture_mean", 
+                                                                                    "Std Error" = "+x.texture_se", "Worst" = "+x.texture_worst"),
+                                                    width = "fit", selected = "+x.texture_worst"), 
+                                        pickerInput("smooth_dim_rf", "Smoothness", c("None"="+0", "Mean"="+x.smoothness_mean", 
+                                                                                      "Std Error"="+x.smoothness_se","Worst"="+x.smoothness_worst"),
+                                                    width = "fit", selected = "+x.smoothness_mean"),
+                                        pickerInput("cp_dim_rf", "Concave Points", c("None"="+0", "Mean"="+x.concave_pts_mean", 
+                                                                                      "Std Error"="+x.concave_pts_se","Worst"="+x.concave_pts_worst"),
+                                                    width = "fit", selected = "+x.concave_pts_worst")
+                        ), #end left column
+                        column(5,offset = 1, 
+                               pickerInput("compact_dim_rf", "Compactness", c("None"="+0", "Mean"="+x.compactness_mean", 
+                                                                               "Std Error"="+x.compactness_se", 
+                                                                               "Worst"="+x.compactness_worst"), 
+                                           width = "fit", selected = "+x.compactness_worst"),                       
+                               pickerInput("concave_dim_rf", "Concavity", c("None"="+0", "Mean"="+x.concavity_mean", 
+                                                                             "Std Error"="+x.concavity_se", "Worst"="+x.concavity_worst"),
+                                           width = "fit", selected = "+x.concavity_mean"), 
+                               pickerInput("symm_dim_rf", "Symmetry", c("None"="+0", "Mean"="+x.symmetry_mean", "Std Error"="+x.symmetry_se", "Worst"="+x.symmetry_worst"),
+                                           width  ="fit", selected = "+x.symmetry_worst"), 
+                               pickerInput("fd_dim_rf", "Fractal Dimension", c("None"="+0", "Mean"="+x.fractal_dim_mean", "Std Error"="+x.fractal_dim_se", "Worst"="+x.fractal_dim_worst"),
+                                           width  ="fit", selected = "+x.fractal_dim_mean"))#end rt column
                         ),#end row 
                         fluidRow(column(5,sliderInput("cv_number", "How many partitions for cross validation?", min = 2, max = 10, value = 5)),column(5, offset= 1,
-                                                                                                                                                      sliderInput("mtry", "How many randomly selected variable introduced at each iteration?", min = 1, max = 3, value = 2)))
+                                                                                                                                                      sliderInput("mtry", "How many randomly selected variable introduced at each iteration?", min = 1, max = 4, value = 3)))
                     ), #end box for RF input,
                     
                     ),#end lt column
@@ -246,13 +259,16 @@ fluidRow(
                                                                     ),
                                                                     pickerInput("model_to_use", "Model to Use", c("Generalized Linear Regression", "Random Forest", "Both"),
                                                                                 width  ="fit", selected = "Generalized Linear Regression"),
-                                                                    actionButton("model_now", "Perform Modelling Now!"),br(),
+                                                                    actionButton("model_now", "Perform Modelling Now!", class= "btn-success"),br(),
                                                                     
                                                                     
                                                                     
-                                                                    strong("Generalized Linear Regression Model"),verbatimTextOutput("glm_summary"),  strong(textOutput("glm_accuracy_test")),strong("Random Forest Model"),textOutput("rf_mtry"), textOutput("rf_accuracy"), plotOutput("rf_var_imp"), verbatimTextOutput("test_text2")
+                                                                    h3("Generalized Linear Regression Model"),verbatimTextOutput("glm_summary"),  strong(textOutput("glm_test_output")),
+                                                                    #textOutput("glm_not_run"),
+                                                                    h3("Random Forest Model"),#textOutput("rf_not_run"), 
+                                                                    textOutput("rf_mtry"), textOutput("rf_test_output"), plotOutput("rf_var_imp"), verbatimTextOutput("test_text2")
                                                                     
-                                                       ), #end box for glm ouput
+                                                       ), #end box for glm output
                                                        )#end rt column
                                                        )#end fluid row
                              ), #end tabPanel Modelling

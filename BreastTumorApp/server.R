@@ -264,7 +264,8 @@ table_ns
 
         observeEvent(input$model_now,{
         if(input$model_to_use=="Generalized Linear Regression" | input$model_to_use=="Both"){
-        #Equation formula glm
+
+        #Create equation for use with glm
         if (input$size_dim_glm != "None"){size_var_glm <- paste0(input$size_glm, input$size_dim_glm)}
         else {size_var_glm <- ("+")}
         
@@ -288,65 +289,96 @@ table_ns
         output$glm_summary <- renderPrint({summary(fit_glm)})
 
         #output accuracy statement for glm
-        output$glm_accuracy_test <- renderText({
-            paste0("GLM Model accuracy on the training set is ", round(fit_glm[[4]][2]*100,1) , "%.")
+        output$glm_test_output <- renderText({
+            paste0("The GLM Model accuracy on the training set is ", round(fit_glm[[4]][2]*100,1) , "%.")
            })
-        } #end if glm or both
-          else {output$glm_summary <- renderPrint({"Generalized Linear Regression not selected."})}
-            
+        if (input$model_to_use=="Generalized Linear Regression"){
+          output$rf_test_output <- renderText({
+            paste0("Random Forest was not selected.")
+            })
           
-        })# end observe event
-        # #Equation formula random forest
+        }
+        output$glm_test_output <- renderText({
+          paste0("The accuracy of the GLM model in predicting the training set is ", 
+                 round(fit_glm[[4]][2]*100,1) , "%.")
+        })
+        } #end of glm or both
+
+            
+        if(input$model_to_use=="Random Forest" | input$model_to_use=="Both"){
+        
+        #Equation formula random forest
+          
+          #Create equation for use with glm
+          if (input$size_dim_rf != "None"){size_var_rf <- paste0(input$size_rf, input$size_dim_rf)}
+          else {size_var_rf <- ("+")}
+          
+          outcome <- "Diagnosis"
+          variables_rf <- c(size_var_rf, input$texture_dim_rf, input$smooth_dim_rf, input$cp_dim_rf,
+                             input$compact_dim_rf, input$concave_dim_rf, input$symm_dim_rf, input$fd_dim_rf)
+          formula_rf <- as.formula(paste (outcome, 
+                                           paste(variables_rf, collapse = " "), 
+                                           sep = " ~ "))
+          
+        # outcome <- "Diagnosis"
         # variables_rf <- c('x.perimeter_mean','x.concavity_mean','x.compactness_se', 'x.symmetry_mean')
-        # formula_rf <- as.formula(paste (outcome, 
-        #                                 paste(variables_rf, collapse = " + "), 
-        #                                 sep = " ~ "))        
-        # 
-        # #Tuning grid for random forest
-        # mtrys <- seq(2, input$mtry, by = 1)
+        # formula_rf <- as.formula(paste (outcome,
+        #                                 paste(variables_rf, collapse = " + "),
+        #                                 sep = " ~ "))
+
+        #Tuning grid for random forest
+        mtrys <- seq(1, input$mtry, by = 1)
         
         #Random Forest Model
         set.seed(1331) #reproducibility for cross validation
-#        fit_rf <- train(formula_rf, 
-#                        data = tumor_data_train, 
-#                        method = "rf", 
-#                        family = "binomial", 
-#                        preProcess = c("center", "scale"),
-#                        trControl= trainControl(method = "cv", number = input$cv_number),
-#                        tuneGrid = expand.grid (mtry = mtrys)
-#        )
-        # #output mtry statement for random forest
-        # output$rf_mtry <- renderText({
-        #   paste0("The optimized value for the number of variables randomly chosen at each branching (mtry) was ",
-        #           fit_rf$bestTune$mtry , ".")
-        # })
+        fit_rf <- train(formula_rf,
+                       data = tumor_data_train,
+                       method = "rf",
+                       family = "binomial",
+                       preProcess = c("center", "scale"),
+                       trControl= trainControl(method = "cv", number = input$cv_number),
+                       tuneGrid = expand.grid (mtry = mtrys)
+       )
+        #output mtry statement for random forest
+        output$rf_mtry <- renderText({
+          paste0("The optimized value for the number of variables randomly chosen at each branching (mtry) was ",
+                  fit_rf$bestTune$mtry , ".")
+        })
+       
+       #  #output accuracy statement for random forest
+        output$rf_test_output<- renderText({
+            #Pull accuracy from fit results
+            accuracy_rf <- fit_rf$results %>% select(mtry, Accuracy) %>%
+                filter(mtry == fit_rf$bestTune$mtry) %>% select (Accuracy)
+            paste0("The accuracy of the random forest model on the training set ",
+                   "using the optimized mtry was ", round((accuracy_rf*100),3), "%.")
+        })
+        if (input$model_to_use=="Random Forest"){
+          output$glm_test_output <- renderText({
+            ("The generalized linear model was not selected.")
+          })
+        }
+       #Generate variable importance plot. Diagnosis will need converting to numeric.
+#       tumor_data_train_2 <- tumor_data_train  %>%
+#           mutate(y_bin = if_else(Diagnosis=="M",1,0))
+#       tumor_data_train_2$y_bin <-as_factor(tumor_data_train_2$y_bin )
 
-        # #output accuracy statement for random forest
-        # output$rf_accuracy <- renderText({
-        #     #Pull accuracy from fit results
-        #     accuracy_rf <- fit_rf$results %>% select(mtry, Accuracy) %>% 
-        #         filter(mtry == fit_rf$bestTune$mtry) %>% select (Accuracy)
-        #     paste0("The accuracy of the random forest model on the training set", 
-        #            "using the optimized mtry was ", round((accuracy_rf*100),3), "%.")
-        # })
+        tumor_data_train_3 <- tumor_data_train
+        tumor_data_train_3$Diagnosis <- as.factor(tumor_data_train_3$Diagnosis)
+                outcome2 <- "Diagnosis"
 
-        #Generate variable importance plot. Diagnosis will need converting to numeric.
-#        tumor_data_train_2 <- tumor_data_train  %>% 
-#            mutate(y_bin = if_else(Diagnosis=="M",1,0))
+        formula_rf_2 <- as.formula(paste (outcome2,
+                                          paste(variables_rf, collapse = " + "),
+                                          sep = " ~ "))
 
-#                outcome2 <- "y_bin"
-        
-#        formula_rf_2 <- as.formula(paste (outcome2, 
-#                                          paste(variables_rf, collapse = " + "), 
-#                                          sep = " ~ "))
-#        tumor_rf<-randomForest(formula_rf_2, data=tumor_data_train_2, mtry=fit_rf$bestTune$mtry)
-                     
-    
-#        output$rf_var_imp <- renderPlot({
-#        varImpPlot(tumor_rf)
-#        })
-        
- 
+
+
+        output$rf_var_imp <- renderPlot({
+        tumor_rf<-randomForest(formula_rf_2, data=tumor_data_train_3, mtry=fit_rf$bestTune$mtry, importance =TRUE)
+        varImpPlot(tumor_rf, main="Variable Importance Plot")
+       })
+        } # end if random forest or both
+        })# end observe event
     
         # 
         # output$test_text2 <- renderPrint({
@@ -362,12 +394,12 @@ table_ns
         #      formula_glm2
         #   })
         #get variable name
-        variable_for_summ <- variable_table %>% 
-            filter(characteristic == input$char_of_interest_ns) %>%
-            filter (dimension == input$dim_of_interest_ns) %>%
-            select (original_name)
-#        
-        paste("The variable is", variable_for_summ)
+#         variable_for_summ <- variable_table %>% 
+#             filter(characteristic == input$char_of_interest_ns) %>%
+#             filter (dimension == input$dim_of_interest_ns) %>%
+#             select (original_name)
+# #        
+#         paste("The variable is", variable_for_summ)
 #          variable_for_summ
 #        table <- summary(variable_for_summ)
 #        table
