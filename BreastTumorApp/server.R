@@ -262,12 +262,18 @@ table_ns
         tumor_data_train <- tumor_data[trainIndex,]
         tumor_data_test <- tumor_data[-trainIndex,]
 
+        observeEvent(input$model_now,{
+        if(input$model_to_use=="Generalized Linear Regression" | input$model_to_use=="Both"){
         #Equation formula glm
+        if (input$size_dim_glm != "None"){size_var_glm <- paste0(input$size_glm, input$size_dim_glm)}
+        else {size_var_glm <- ("+")}
+        
         outcome <- "Diagnosis"
-        variables_glm <- c('+x.perimeter_mean','x.concavity_mean','x.compactness_se', " +",  'x.symmetry_mean', "+0")
+        variables_glm <- c(size_var_glm, input$texture_dim_glm, input$smooth_dim_glm, input$cp_dim_glm,
+                            input$compact_dim_glm, input$concave_dim_glm, input$symm_dim_glm, input$fd_dim_glm)
         formula_glm <- as.formula(paste (outcome, 
-                                         paste(variables_glm, collapse = " + "), 
-                                         sep = " ~ "))
+                                          paste(variables_glm, collapse = " "), 
+                                          sep = " ~ "))
 
         #glm model       
         set.seed(121) #reproducibility for cross validation
@@ -285,15 +291,19 @@ table_ns
         output$glm_accuracy_test <- renderText({
             paste0("GLM Model accuracy on the training set is ", round(fit_glm[[4]][2]*100,1) , "%.")
            })
-        
-        #Equation formula random forest
-        variables_rf <- c('x.perimeter_mean','x.concavity_mean','x.compactness_se', 'x.symmetry_mean')
-        formula_rf <- as.formula(paste (outcome, 
-                                        paste(variables_rf, collapse = " + "), 
-                                        sep = " ~ "))        
-
-        #Tuning grid for random forest
-        mtrys <- seq(2, input$mtry, by = 1)
+        } #end if glm or both
+          else {output$glm_summary <- renderPrint({"Generalized Linear Regression not selected."})}
+            
+          
+        })# end observe event
+        # #Equation formula random forest
+        # variables_rf <- c('x.perimeter_mean','x.concavity_mean','x.compactness_se', 'x.symmetry_mean')
+        # formula_rf <- as.formula(paste (outcome, 
+        #                                 paste(variables_rf, collapse = " + "), 
+        #                                 sep = " ~ "))        
+        # 
+        # #Tuning grid for random forest
+        # mtrys <- seq(2, input$mtry, by = 1)
         
         #Random Forest Model
         set.seed(1331) #reproducibility for cross validation
@@ -305,20 +315,20 @@ table_ns
 #                        trControl= trainControl(method = "cv", number = input$cv_number),
 #                        tuneGrid = expand.grid (mtry = mtrys)
 #        )
-        #output mtry statement for random forest
-        output$rf_mtry <- renderText({
-          paste0("The optimized value for the number of variables randomly chosen at each branching (mtry) was ",
-                  fit_rf$bestTune$mtry , ".")
-        })
+        # #output mtry statement for random forest
+        # output$rf_mtry <- renderText({
+        #   paste0("The optimized value for the number of variables randomly chosen at each branching (mtry) was ",
+        #           fit_rf$bestTune$mtry , ".")
+        # })
 
-        #output accuracy statement for random forest
-        output$rf_accuracy <- renderText({
-            #Pull accuracy from fit results
-            accuracy_rf <- fit_rf$results %>% select(mtry, Accuracy) %>% 
-                filter(mtry == fit_rf$bestTune$mtry) %>% select (Accuracy)
-            paste0("The accuracy of the random forest model on the training set", 
-                   "using the optimized mtry was ", round((accuracy_rf*100),3), "%.")
-        })
+        # #output accuracy statement for random forest
+        # output$rf_accuracy <- renderText({
+        #     #Pull accuracy from fit results
+        #     accuracy_rf <- fit_rf$results %>% select(mtry, Accuracy) %>% 
+        #         filter(mtry == fit_rf$bestTune$mtry) %>% select (Accuracy)
+        #     paste0("The accuracy of the random forest model on the training set", 
+        #            "using the optimized mtry was ", round((accuracy_rf*100),3), "%.")
+        # })
 
         #Generate variable importance plot. Diagnosis will need converting to numeric.
 #        tumor_data_train_2 <- tumor_data_train  %>% 
@@ -338,19 +348,19 @@ table_ns
         
  
     
-    
-        output$test_text2 <- renderPrint({
-        if (input$size_dim_glm != "None"){size_var_glm <- paste0(input$size_glm, input$size_dim_glm)}
-            else {size_var_glm <- ("+")}
-              
-        outcome <- "Diagnosis"
-        variables_glm2 <- c(size_var_glm, input$texture_dim_glm, input$smooth_dim_glm, input$compact_dim_glm,
-                            input$concave_dim_glm, input$symm_dim_glm)
-             formula_glm2 <- as.formula(paste (outcome, 
-                                              paste(variables_glm2, collapse=" "), 
-                                              sep = " ~ "))
-             formula_glm2
-          })
+        # 
+        # output$test_text2 <- renderPrint({
+        # if (input$size_dim_glm != "None"){size_var_glm <- paste0(input$size_glm, input$size_dim_glm)}
+        #     else {size_var_glm <- ("+")}
+        #       
+        # outcome <- "Diagnosis"
+        # variables_glm2 <- c(size_var_glm, input$texture_dim_glm, input$smooth_dim_glm, input$cp_dim_glm, input$compact_dim_glm,
+        #                     input$concave_dim_glm, input$symm_dim_glm, input$fd_dim_glm)
+        #      formula_glm2 <- as.formula(paste (outcome, 
+        #                                       paste(variables_glm2, collapse=" "), 
+        #                                       sep = " ~ "))
+        #      formula_glm2
+        #   })
         #get variable name
         variable_for_summ <- variable_table %>% 
             filter(characteristic == input$char_of_interest_ns) %>%

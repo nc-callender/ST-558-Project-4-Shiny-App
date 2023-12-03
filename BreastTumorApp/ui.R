@@ -187,15 +187,19 @@ fluidRow(
     column(5, 
          pickerInput("size_glm", "Size Characteristic", 
                      c("Radius" ="x.radius", "Area"="x.area", "Perimeter"="x.perimeter"), 
-                     width = "fit", selected ="x.perimeter"),
+                     width = "fit", selected ="x.area"),
          pickerInput("size_dim_glm", "Size", c("None", "Mean"="_mean", "Std Error"="_se","Worst"="_worst"),
-                    width = "fit", selected = "_mean"), 
+                    width = "fit", selected = "_worst"), 
          pickerInput("texture_dim_glm", "Texture", c("None"="+0 ", "Mean"="+x.texture_mean", 
                                                     "Std Error" = "+x.texture_se", "Worst" = "+x.texture_worst"),
-                   width = "fit", selected = "+x.texture_mean"), 
+                   width = "fit", selected = "+x.texture_worst"), 
         pickerInput("smooth_dim_glm", "Smoothness", c("None"="+0", "Mean"="+x.smoothness_mean", 
                                                       "Std Error"="+x.smoothness_se","Worst"="+x.smoothness_worst"),
-                    width = "fit", selected = "+x.smoothness_mean")),
+                    width = "fit", selected = "+x.smoothness_mean"),
+        pickerInput("cp_dim_glm", "Concave Points", c("None"="+0", "Mean"="+x.concave_pts_mean", 
+                                                      "Std Error"="+x.concave_pts_se","Worst"="+x.concave_pts_worst"),
+                    width = "fit", selected = "+x.concave_pts_worst")
+        ), #end left column
     column(5,offset = 1, 
            pickerInput("compact_dim_glm", "Compactness", c("None"="+0", "Mean"="+x.compactness_mean", 
                                                            "Std Error"="+x.compactness_se", 
@@ -205,7 +209,10 @@ fluidRow(
                                                         "Std Error"="+x.concavity_se", "Worst"="+x.concavity_worst"),
                      width = "fit", selected = "+x.concavity_mean"), 
                                                                                                              pickerInput("symm_dim_glm", "Symmetry", c("None"="+0", "Mean"="+x.symmetry_mean", "Std Error"="+x.symmetry_se", "Worst"="+x.symmetry_worst"),
-                                                                                                                         width  ="fit", selected = "+x.symmetry_se") )#end rt column
+                                                                                                                         width  ="fit", selected = "+x.symmetry_worst"), 
+      pickerInput("fd_dim_glm", "Fractal Dimension", c("None"="+0", "Mean"="+x.fractal_dim_mean", "Std Error"="+x.fractal_dim_se", "Worst"="+x.fractal_dim_worst"),
+                       width  ="fit", selected = "+x.fractal_dim_mean") 
+           )#end rt column
                                                                                              ),#end row 
                     ), #end box for GLM input
                     box(width=12, strong("Random Forest Input"),
@@ -239,7 +246,11 @@ fluidRow(
                                                                     ),
                                                                     pickerInput("model_to_use", "Model to Use", c("Generalized Linear Regression", "Random Forest", "Both"),
                                                                                 width  ="fit", selected = "Generalized Linear Regression"),
-                                                                    strong("Generalized Linear Regression Model"),p("Here for GLM output"),verbatimTextOutput("glm_summary"),  textOutput("glm_accuracy_test"),strong("Generalized Linear Regression Model"),textOutput("rf_mtry"), textOutput("rf_accuracy"), plotOutput("rf_var_imp"), verbatimTextOutput("test_text2")
+                                                                    actionButton("model_now", "Perform Modelling Now!"),br(),
+                                                                    
+                                                                    
+                                                                    
+                                                                    strong("Generalized Linear Regression Model"),verbatimTextOutput("glm_summary"),  strong(textOutput("glm_accuracy_test")),strong("Random Forest Model"),textOutput("rf_mtry"), textOutput("rf_accuracy"), plotOutput("rf_var_imp"), verbatimTextOutput("test_text2")
                                                                     
                                                        ), #end box for glm ouput
                                                        )#end rt column
