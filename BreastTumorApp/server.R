@@ -30,8 +30,7 @@ variable_names <- variable_names %>% filter ((original_name != "X" & original_na
 characteristic_base <- c("Radius", "Texture", "Perimeter", "Area", "Smoothness", "Compactness", "Concavity", "Concave Points", "Symmetry", "Fractal Dimension")
 characteristic <- rep(characteristic_base,times  =3)
 
-dimension_base <-c ("Mean", "Std Error", "Worst")
-dimension <- rep(dimension_base, times = 10)
+dimension <-c(rep("Mean", times=10), rep("Std Error", times=10), rep("Worst", times=10))
 
 variable_table <- data.frame(variable_names, characteristic, dimension )
 
@@ -52,7 +51,6 @@ shinyServer(function(input, output, session) {
         #get variable name
         variable_for_summ <-get_variable_name (characteristic_of_interest = input$char_of_interest_ns,
                                                dimension_of_interest = input$dim_of_interest_ns)
-
         #Select variable name and y, label y for plotting
         table_ns <- tumor_data %>% 
             select_({{variable_for_summ[1,1]}},{{variable_for_summ[1,2]}}) 
@@ -94,7 +92,9 @@ shinyServer(function(input, output, session) {
                 summarize (Mean = round(mean(x),3), "Std. Dev." = round(sd(x),3))
             }
           } #end for filtering 
-
+             output$test_text2 <- renderPrint({variable_for_summ
+            
+               })
 table_ns 
 })  # end of numeric summary section
   
