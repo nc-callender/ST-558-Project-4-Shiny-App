@@ -263,10 +263,16 @@ fluidRow(
                                                                     
                                                                     
                                                                     
-                                                                    h3("Generalized Linear Regression Model"),verbatimTextOutput("glm_summary"),  strong(textOutput("glm_test_output")),
+                                                                    h3("Generalized Linear Regression Model"),
+                                                                    verbatimTextOutput("glm_summary"),  
+                                                                    
+                                                                    tags$span(style="color:red;", strong(textOutput("glm_test_output"))),
                                                                     #textOutput("glm_not_run"),
                                                                     h3("Random Forest Model"),#textOutput("rf_not_run"), 
-                                                                    textOutput("rf_mtry"), textOutput("rf_test_output"), plotOutput("rf_var_imp"), verbatimTextOutput("test_text2")
+                                                                    tags$span(style="color:blue;", strong(textOutput("rf_mtry"))), tags$span(style="color:red;", strong(textOutput("rf_test_output"))), plotOutput("rf_var_imp"), verbatimTextOutput("test_text2"), h3("Accuracy of Model on Test Set"),tags$span(style="color:blue;", strong(textOutput("glm_acc"))),tags$span(style="color:blue;", strong(textOutput("rf_acc"))),
+                                                                    br(),
+                                                                    h3("Accuracy: Test Set"),tags$span(style="color:blue;", strong(textOutput("glm_test_acc")))
+                                                                    
                                                                     
                                                        ), #end box for glm output
                                                        )#end rt column

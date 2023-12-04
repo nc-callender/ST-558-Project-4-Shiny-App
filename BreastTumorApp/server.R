@@ -292,16 +292,32 @@ table_ns
         output$glm_test_output <- renderText({
             paste0("The GLM Model accuracy on the training set is ", round(fit_glm[[4]][2]*100,1) , "%.")
            })
-        if (input$model_to_use=="Generalized Linear Regression"){
-          output$rf_test_output <- renderText({
-            paste0("Random Forest was not selected.")
-            })
-          
-        }
         output$glm_test_output <- renderText({
-          paste0("The accuracy of the GLM model in predicting the training set is ", 
+          paste0("The accuracy of the GLM model in predicting the training set is ",
                  round(fit_glm[[4]][2]*100,1) , "%.")
         })
+        
+        #Prediction for use with accuracy
+        # pred_glm_acc <- predict(fit_glm, newdata = tumor_data_test)
+        
+        # #Generate confusion matrix
+        # pred_glm_acc_results <- confusionMatrix(data = tumor_data_test $Diagnosis, 
+        # reference = pred_glm_acc)
+        # 
+        # output$glm_test_acc <- renderText({
+        #   paste0("The accuracy of the GLM model in predicting the test set is ", 
+        #          round(pred_glm_acc_results$overall[1],1) , "%.")})
+          
+        
+        #Reset random forest outputs when GLM only selected
+        if (input$model_to_use=="Generalized Linear Regression"){
+            output$rf_var_imp <- renderPlot({})
+            output$rf_mtry <- renderText({" "})
+            output$rf_test_output <- renderText({("Random Forest was not selected.")})
+        }
+
+        
+        
         } #end of glm or both
 
             
@@ -353,10 +369,10 @@ table_ns
             paste0("The accuracy of the random forest model on the training set ",
                    "using the optimized mtry was ", round((accuracy_rf*100),3), "%.")
         })
-        if (input$model_to_use=="Random Forest"){
-          output$glm_test_output <- renderText({
-            ("The generalized linear model was not selected.")
-          })
+#Reset GLM outputs when random forest only is run.
+                if (input$model_to_use=="Random Forest"){
+          output$glm_test_output <- renderText({("The generalized linear model was not selected.")})
+          output$glm_summary <- renderPrint({invisible()})
         }
        #Generate variable importance plot. Diagnosis will need converting to numeric.
 #       tumor_data_train_2 <- tumor_data_train  %>%
