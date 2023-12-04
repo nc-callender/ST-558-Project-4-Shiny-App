@@ -257,10 +257,10 @@ table_ns
     observe({
       input$data_split 
     #split dataset
-     set.seed(121) #reproducibility of splitting
-        trainIndex <-createDataPartition(tumor_data$Diagnosis, input$data_split, list=FALSE)
-        tumor_data_train <- tumor_data[trainIndex,]
-        tumor_data_test <- tumor_data[-trainIndex,]
+     set.seed(14641) #reproducibility of splitting
+      train_index <-createDataPartition(tumor_data$Diagnosis, input$data_split, list=TRUE)
+      tumor_data_train <- tumor_data[train_index[[1]],]
+      tumor_data_test <- tumor_data[-train_index[[1]],]
 
         observeEvent(input$model_now,{
         if(input$model_to_use=="Generalized Linear Regression" | input$model_to_use=="Both"){
@@ -270,9 +270,11 @@ table_ns
         else {size_var_glm <- ("+")}
         
         outcome <- "Diagnosis"
-        variables_glm <- c(size_var_glm, input$texture_dim_glm, input$smooth_dim_glm, input$cp_dim_glm,
-                            input$compact_dim_glm, input$concave_dim_glm, input$symm_dim_glm, input$fd_dim_glm)
-        formula_glm <- as.formula(paste (outcome, 
+        variables_glm <- c(size_var_glm, input$texture_dim_glm, input$smooth_dim_glm,
+                           input$cp_dim_glm, input$compact_dim_glm, input$concave_dim_glm,
+                           input$symm_dim_glm, input$fd_dim_glm)
+
+                formula_glm <- as.formula(paste (outcome, 
                                           paste(variables_glm, collapse = " "), 
                                           sep = " ~ "))
 
@@ -285,7 +287,19 @@ table_ns
                          preProcess = c("center", "scale"),
                          trControl= trainControl(method="cv", number=5)
         )
-        #output summary for glm
+        
+          output$test_text2 <- renderPrint({
+          head(tumor_data_test)
+            })
+        #Prediction for use with accuracy
+        pred_glm_acc <- predict(fit_glm, newdata = tumor_data_test)
+        pred_glm_acc_results <- confusionMatrix(data = tumor_data_test$Diagnosis,
+                                                 reference = pred_glm_acc)
+         output$glm_test_acc <- renderText({
+              paste0("The accuracy of the GLM model in predicting the test set is ",
+                     round(pred_glm_acc_results$overall[1]*100,1) , "%.")})
+
+                 #output summary for glm
         output$glm_summary <- renderPrint({summary(fit_glm)})
 
         #output accuracy statement for glm
@@ -297,27 +311,14 @@ table_ns
                  round(fit_glm[[4]][2]*100,1) , "%.")
         })
         
-        #Prediction for use with accuracy
-        # pred_glm_acc <- predict(fit_glm, newdata = tumor_data_test)
-        
-        # #Generate confusion matrix
-        # pred_glm_acc_results <- confusionMatrix(data = tumor_data_test $Diagnosis, 
-        # reference = pred_glm_acc)
-        # 
-        # output$glm_test_acc <- renderText({
-        #   paste0("The accuracy of the GLM model in predicting the test set is ", 
-        #          round(pred_glm_acc_results$overall[1],1) , "%.")})
-          
-        
         #Reset random forest outputs when GLM only selected
         if (input$model_to_use=="Generalized Linear Regression"){
             output$rf_var_imp <- renderPlot({})
             output$rf_mtry <- renderText({" "})
             output$rf_test_output <- renderText({("Random Forest was not selected.")})
-        }
+            output$rf_test_acc <- renderText({" "})
+        } #end of reset random forest outputs
 
-        
-        
         } #end of glm or both
 
             
@@ -336,11 +337,6 @@ table_ns
                                            paste(variables_rf, collapse = " "), 
                                            sep = " ~ "))
           
-        # outcome <- "Diagnosis"
-        # variables_rf <- c('x.perimeter_mean','x.concavity_mean','x.compactness_se', 'x.symmetry_mean')
-        # formula_rf <- as.formula(paste (outcome,
-        #                                 paste(variables_rf, collapse = " + "),
-        #                                 sep = " ~ "))
 
         #Tuning grid for random forest
         mtrys <- seq(1, input$mtry, by = 1)
@@ -367,12 +363,22 @@ table_ns
             accuracy_rf <- fit_rf$results %>% select(mtry, Accuracy) %>%
                 filter(mtry == fit_rf$bestTune$mtry) %>% select (Accuracy)
             paste0("The accuracy of the random forest model on the training set ",
-                   "using the optimized mtry was ", round((accuracy_rf*100),3), "%.")
+                   "using the optimized mtry was ", round((accuracy_rf*100),1), "%.")
         })
+        
+        #Prediction for use with accuracy on test set
+        pred_rf_acc <- predict(fit_rf, newdata = tumor_data_test)
+        pred_rf_acc_results <- confusionMatrix(data = tumor_data_test$Diagnosis,
+                                                reference = pred_rf_acc)
+        output$rf_test_acc <- renderText({
+          paste0("The accuracy of the random forest model in predicting the test set is ",
+                 round(pred_rf_acc_results$overall[1]*100,1) , "%.")})
+        
 #Reset GLM outputs when random forest only is run.
                 if (input$model_to_use=="Random Forest"){
           output$glm_test_output <- renderText({("The generalized linear model was not selected.")})
           output$glm_summary <- renderPrint({invisible()})
+          output$glm_test_acc <- renderText({" "})
         }
        #Generate variable importance plot. Diagnosis will need converting to numeric.
 #       tumor_data_train_2 <- tumor_data_train  %>%
@@ -398,16 +404,7 @@ table_ns
     
         # 
         # output$test_text2 <- renderPrint({
-        # if (input$size_dim_glm != "None"){size_var_glm <- paste0(input$size_glm, input$size_dim_glm)}
-        #     else {size_var_glm <- ("+")}
-        #       
-        # outcome <- "Diagnosis"
-        # variables_glm2 <- c(size_var_glm, input$texture_dim_glm, input$smooth_dim_glm, input$cp_dim_glm, input$compact_dim_glm,
-        #                     input$concave_dim_glm, input$symm_dim_glm, input$fd_dim_glm)
-        #      formula_glm2 <- as.formula(paste (outcome, 
-        #                                       paste(variables_glm2, collapse=" "), 
-        #                                       sep = " ~ "))
-        #      formula_glm2
+
         #   })
         #get variable name
 #         variable_for_summ <- variable_table %>% 

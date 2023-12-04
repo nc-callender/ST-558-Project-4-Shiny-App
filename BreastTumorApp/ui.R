@@ -189,7 +189,7 @@ fluidRow(
                      c("Radius" ="x.radius", "Area"="x.area", "Perimeter"="x.perimeter"), 
                      width = "fit", selected ="x.area"),
          pickerInput("size_dim_glm", "Size", c("None", "Mean"="_mean", "Std Error"="_se","Worst"="_worst"),
-                    width = "fit", selected = "_worst"), 
+                    width = "fit", selected = "_mean"), 
          pickerInput("texture_dim_glm", "Texture", c("None"="+0 ", "Mean"="+x.texture_mean", 
                                                     "Std Error" = "+x.texture_se", "Worst" = "+x.texture_worst"),
                    width = "fit", selected = "+x.texture_worst"), 
@@ -252,26 +252,27 @@ fluidRow(
                     
                     ),#end lt column
                                                        column(6,add_busy_spinner(spin="fading-circle"),box(width=12, strong("Split the Data Set"),
-                                                                    p("The data set needs splitting into two parts, one for training and one for testing."),
-                                                                    sliderInput("data_split", "What percent of the data do you want to use for training?", min = 50, max = 95, value = 80, step = 5),
-                                                                    strong("Compare Model Input"),
-                                                                    p("Select which model (or both) to use. If both are selected then accuracy results will be reported."
-                                                                    ),
-                                                                    pickerInput("model_to_use", "Model to Use", c("Generalized Linear Regression", "Random Forest", "Both"),
-                                                                                width  ="fit", selected = "Generalized Linear Regression"),
+p("The data set needs splitting into two parts, one for training and one for testing."),
+sliderInput("data_split", "What percent of the data do you want to use for training?", min = 50, max = 95, value = 70, step = 5),
+strong("Compare Model Input"),
+p("Select which model (or both) to use. If both are selected then accuracy results will be reported."),
+pickerInput("model_to_use", "Model to Use", c("Generalized Linear Regression", "Random Forest", "Both"),width  ="fit", selected = "Generalized Linear Regression"),
                                                                     actionButton("model_now", "Perform Modelling Now!", class= "btn-success"),br(),
                                                                     
                                                                     
                                                                     
-                                                                    h3("Generalized Linear Regression Model"),
-                                                                    verbatimTextOutput("glm_summary"),  
-                                                                    
-                                                                    tags$span(style="color:red;", strong(textOutput("glm_test_output"))),
-                                                                    #textOutput("glm_not_run"),
-                                                                    h3("Random Forest Model"),#textOutput("rf_not_run"), 
-                                                                    tags$span(style="color:blue;", strong(textOutput("rf_mtry"))), tags$span(style="color:red;", strong(textOutput("rf_test_output"))), plotOutput("rf_var_imp"), verbatimTextOutput("test_text2"), h3("Accuracy of Model on Test Set"),tags$span(style="color:blue;", strong(textOutput("glm_acc"))),tags$span(style="color:blue;", strong(textOutput("rf_acc"))),
-                                                                    br(),
-                                                                    h3("Accuracy: Test Set"),tags$span(style="color:blue;", strong(textOutput("glm_test_acc")))
+h3("Generalized Linear Regression Model"),
+       verbatimTextOutput("glm_summary"),  
+       tags$span(style="color:blue;", strong(textOutput("glm_test_output"))),
+
+       h3("Random Forest Model"),
+      tags$span(style="color:blue;", strong(textOutput("rf_mtry"))), 
+      tags$span(style="color:blue;", strong(textOutput("rf_test_output"))),
+      plotOutput("rf_var_imp"), 
+      br(),
+      h3("Accuracy: Test Set"),
+      tags$span(style="color:blue;", strong(textOutput("glm_test_acc"))),
+      tags$span(style="color:blue;", strong(textOutput("rf_test_acc")))
                                                                     
                                                                     
                                                        ), #end box for glm output
