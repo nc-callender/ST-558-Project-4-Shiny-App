@@ -34,6 +34,7 @@ dimension <-c(rep("Mean", times=10), rep("Std Error", times=10), rep("Worst", ti
 
 variable_table <- data.frame(variable_names, characteristic, dimension )
 variable_table <- variable_table %>% unite(char_dim,characteristic:dimension, sep = "_", remove = FALSE)
+
 #Function for accessing variable name
 get_variable_name <- function (characteristic_of_interest = "Area", dimension_of_interest = "Mean"){
     variable_name_desired<- variable_table %>% 
@@ -272,6 +273,8 @@ table_ns
           output$rf_predict_malignant <- renderText(" ")
           output$glm_variables1 <- renderText(" ")
           output$glm_variables2 <- renderText(" ")
+          output$rf_variables1 <- renderText(" ")
+          output$rf_variables2 <- renderText(" ")
           
           methods_used <-input$model_to_use
           output$methods_for_prediction <- renderText((methods_used))
@@ -341,7 +344,7 @@ table_ns
         }
 
          var_list_collapsed <- paste(var_list_display, collapse = " + ")
-        output$glm_variables1 <- renderText("The variables used in the generalized regression model were: ") 
+        output$glm_variables1 <- renderText("The variables used in the generalized linear regression model were: ") 
         output$glm_variables2 <- renderText(paste(var_list_collapsed))
         
         #Prediction
@@ -491,6 +494,18 @@ table_ns
         output$glm_predict_malignant <- renderText(" ")
         output$rf_predict_malignant <- renderText(" ")
         output$glm_predict_benign <- renderText(" ")
+        
+        # #Prepare list of variables used in fitting to display in prediction tab
+        var_list_rf <- fit_rf[[23]]
+        var_list_display_rf <- c()
+        for (i in 1:length(var_list_rf)){
+          var_list_display_rf[i] <- variable_table[which(variable_table$original_name == var_list_rf[i]),2]
+        }
+        
+        var_list_rf_collapsed <- paste(var_list_display_rf, collapse = " + ")
+        output$rf_variables1 <- renderText("The variables used in the random forest model were: ") 
+        output$rf_variables2 <- renderText(paste(var_list_rf_collapsed))
+        
         
         #Perform prediction
         observeEvent(input$predict_now,{
