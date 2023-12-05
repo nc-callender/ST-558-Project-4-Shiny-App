@@ -204,7 +204,7 @@ fluidRow(
            pickerInput("compact_dim_glm", "Compactness", c("None"="+0", "Mean"="+x.compactness_mean", 
                                                            "Std Error"="+x.compactness_se", 
                                                            "Worst"="+x.compactness_worst"), 
-                    width = "fit", selected = "+x.compactness_worst"),                       
+                    width = "fit", selected = "+x.compactness_se"),                       
            pickerInput("concave_dim_glm", "Concavity", c("None"="+0", "Mean"="+x.concavity_mean", 
                                                         "Std Error"="+x.concavity_se", "Worst"="+x.concavity_worst"),
                      width = "fit", selected = "+x.concavity_mean"), 
@@ -215,7 +215,7 @@ fluidRow(
            )#end rt column
                                                                                              ),#end row 
                     ), #end box for GLM input
-                    box(width=12, strong("Random Forest Input"),
+                    box(width=12,   strong("Random Forest Input"),
                         p("Modelling works best when there is not a large amount of correlation between predictors. For that reason, some characteristics are not being used for modelling. For size, the user can pick between the three related characteristics: radius, perimeter, and area."),
                         p("For each tumor characteristic below, select the dimension to use in the model. Also select the number of partitions for cross validation and the number of randomly selected variables to include at each branching of the random forest."),
                         fluidRow(column(5,          pickerInput("size_rf", "Size Characteristic", 
@@ -237,7 +237,7 @@ fluidRow(
                                pickerInput("compact_dim_rf", "Compactness", c("None"="+0", "Mean"="+x.compactness_mean", 
                                                                                "Std Error"="+x.compactness_se", 
                                                                                "Worst"="+x.compactness_worst"), 
-                                           width = "fit", selected = "+x.compactness_worst"),                       
+                                           width = "fit", selected = "+x.compactness_se"),                       
                                pickerInput("concave_dim_rf", "Concavity", c("None"="+0", "Mean"="+x.concavity_mean", 
                                                                              "Std Error"="+x.concavity_se", "Worst"="+x.concavity_worst"),
                                            width = "fit", selected = "+x.concavity_mean"), 
@@ -247,39 +247,102 @@ fluidRow(
                                            width  ="fit", selected = "+x.fractal_dim_mean"))#end rt column
                         ),#end row 
                         fluidRow(column(5,sliderInput("cv_number", "How many partitions for cross validation?", min = 2, max = 10, value = 5)),column(5, offset= 1,
-                                                                                                                                                      sliderInput("mtry", "How many randomly selected variable introduced at each iteration?", min = 1, max = 4, value = 3)))
+                                                                                                                                                      sliderInput("mtry", "How many randomly selected variables introduced at each iteration?", min = 1, max = 4, value = 3)))
                     ), #end box for RF input,
                     
                     ),#end lt column
-                                                       column(6,add_busy_spinner(spin="fading-circle"),box(width=12, strong("Split the Data Set"),
+                                                       column(6,add_busy_spinner(spin="fading-circle"),box(width=12,
+      box(width=12, strong("Split the Data Set"),
 p("The data set needs splitting into two parts, one for training and one for testing."),
 sliderInput("data_split", "What percent of the data do you want to use for training?", min = 50, max = 95, value = 70, step = 5),
 strong("Compare Model Input"),
 p("Select which model (or both) to use. If both are selected then accuracy results will be reported."),
 pickerInput("model_to_use", "Model to Use", c("Generalized Linear Regression", "Random Forest", "Both"),width  ="fit", selected = "Generalized Linear Regression"),
-                                                                    actionButton("model_now", "Perform Modelling Now!", class= "btn-success"),br(),
+                                                                    actionButton("model_now", "Perform Modelling Now!", class= "btn-success")),br(),
                                                                     
                                                                     
                                                                     
+box(width =12, 
 h3("Generalized Linear Regression Model"),
        verbatimTextOutput("glm_summary"),  
        tags$span(style="color:blue;", strong(textOutput("glm_test_output"))),
+        tags$span(style="color:purple;", strong(textOutput("glm_test_acc"))),
 
        h3("Random Forest Model"),
-      tags$span(style="color:blue;", strong(textOutput("rf_mtry"))), 
-      tags$span(style="color:blue;", strong(textOutput("rf_test_output"))),
-      plotOutput("rf_var_imp"), 
-      br(),
-      h3("Accuracy: Test Set"),
-      tags$span(style="color:blue;", strong(textOutput("glm_test_acc"))),
-      tags$span(style="color:blue;", strong(textOutput("rf_test_acc")))
-                                                                    
-                                                                    
+        tags$span(style="color:blue;", strong(textOutput("rf_not_performed"))),
+        plotOutput("rf_var_imp"), 
+        tags$span(style="color:blue;", strong(textOutput("rf_mtry"))), 
+        tags$span(style="color:blue;", strong(textOutput("rf_test_output"))),      
+        tags$span(style="color:purple;", strong(textOutput("rf_test_acc"))))
+
+
                                                        ), #end box for glm output
                                                        )#end rt column
                                                        )#end fluid row
                              ), #end tabPanel Modelling
-                    tabPanel("Prediction", fluidPage(h1("model predict")))
+                    tabPanel("Prediction",  fluidRow(column(12, box(width=12, h3("Selecting Values for Predictors"),br(),
+                                                                   fluidRow(
+column(2,numericInput("radius_mean", "Radius: mean? (5-30)", min = 5, max = 30, value = 14)),
+column(2, numericInput("radius_se", "Radius: std error? (0-3)", min = 0, max = 3, value = 0.4)),
+column(2, numericInput("radius_worst", "Radius: worst? (5-40)", min = 5, max = 40, value = 17)),
+column(2,numericInput("texture_mean", "Texture: mean? (10-40)", min = 10, max = 40, value = 19)),
+column(2, numericInput("texture_se", "Texture: std error? (0-5)", min = 0, max = 5, value = 1.2)),
+column(2, numericInput("texture_worst", "Texture: worst? (10-50)", min = 10, max = 50, value = 26))),
+fluidRow(
+  column(2,numericInput("perimeter_mean", "Perimeter: mean? (40-200)", min = 40, max = 200, value = 92)),
+  column(2, numericInput("perimeter_se", "Perimeter: std error? (0-30)", min = 0, max = 30, value = 3)),
+  column(2, numericInput("perimeter_worst", "Perimeter: worst? (40-300)", min = 40, max = 300, value = 110)),
+  column(2,numericInput("area_mean", "Area: mean? (100-2600)", min = 100, max = 2600, value = 655)),
+  column(2, numericInput("area_se", "Area: std error? (0-600)", min = 0, max = 600, value = 40)),
+  column(2, numericInput("area_worst", "Area: worst? (150-5000)", min = 150, max = 5000, value = 890))),
+fluidRow(
+  column(2,numericInput("smoothness_mean", "Smoothness: mean? (0-0.5)", min = 0, max = 0.5, value = 0.096)),
+  column(2, numericInput("smoothness_se", "Smoothness: std error? (0-0.05)", min = 0, max = 0.05, value = 0.007)),
+  column(2, numericInput("smoothness_worst", "Smoothness: worst? (0-1.5)", min = 0, max = 1.5, value = 0.13)),
+  column(2,numericInput("compactness_mean", "Compactness: mean? (0-0.5)", min = 0, max = 0.5, value = 0.104)),
+  column(2, numericInput("compactness_se", "Compactness: std error? (0-0.15)", min = 0, max = 0.15, value = 0.025)),
+  column(2, numericInput("compactness_worst", "Compactness: worst? (0-1.5)", min = 0, max = 1.5, value = 0.250))),
+fluidRow(
+  column(2,numericInput("concavity_mean", "Concavity: mean? (0-0.5)", min = 0, max = 0.5, value = 0.089)),
+  column(2, numericInput("concavity_se", "Concavity: std error? (0-0.4)", min = 0, max = 0.4, value = 0.032)),
+  column(2, numericInput("concavity_worst", "Concavity: worst? (0-1.3)", min = 0, max = 1.3, value = 0.27)),
+
+  column(2,numericInput("symmetry_mean", "Symmetry: mean? (0-0.5)", min = 0, max = 0.5, value = 0.181)),
+  column(2, numericInput("symmetry_se", "Symmetry: std error? (0-0.1)", min = 0, max = 0.1, value = 0.021)),
+  column(2, numericInput("symmetry_worst", "Symmetry: worst? (0-0.8)", min = 0, max = 0.8, value = 0.29))),
+
+fluidRow(
+  column(2,numericInput("cp_mean", HTML("Concave Points: mean? <br/>(0-0.3)"), min = 0, max = 0.3, value = 0.049)),
+  column(2, numericInput("cp_se", HTML("Concave Points: std error?<br/> (0-0.1)"), min = 0, max = 0.1, value = 0.012)),
+  column(2, numericInput("cp_worst", HTML("Concave Points: worst? <br/>(0-0.3)"), min = 0, max = 0.3, value = 0.115)),
+  
+  column(2,numericInput("fd_mean", HTML("Fractal Dimension: mean? <br/>(0-0.1)"), min = 0, max = 0.1, value = 0.063)),
+  column(2, numericInput("fd_se", HTML("Fractal Dimension: std error? <br/>(0-0.1)"), min = 0, max = 0.1, value = 0.004)),
+  column(2, numericInput("fd_worst", HTML("Fractal Dimension: worst? <br/>(0-0.3)"), min = 0, max = 0.3, value = 0.084))),
+actionButton("predict_now", "Obtain Prediction Now!", class= "btn-success")
+
+                    )# end box
+                    )#end column
+                    ),#end row
+
+box(width = 12,background="light-blue","Current models are:", textOutput("methods_for_prediction"), 
+
+     textOutput("glm_variables1"),
+     strong(textOutput("glm_variables2"))
+    ), 
+
+br(),
+box(width = 12, tags$span(style="color:green;", strong(textOutput("glm_predict_benign"))),
+tags$span(style="color:red;", strong(textOutput("glm_predict_malignant"))),
+#verbatimTextOutput("test"),
+
+tags$span(style="color:green;", strong(textOutput("rf_predict_benign"))),
+tags$span(style="color:red;", strong(textOutput("rf_predict_malignant")))),
+
+)#end tabPanel for Prediction
+
+# verbatimTextOutput("glm_summary"),  
+# tags$span(style="color:blue;", strong(textOutput("glm_test_output"))),
                 )#end tabsetpanel for modelling
                 
             )#end tabItem-modelling

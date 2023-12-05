@@ -33,7 +33,7 @@ characteristic <- rep(characteristic_base,times  =3)
 dimension <-c(rep("Mean", times=10), rep("Std Error", times=10), rep("Worst", times=10))
 
 variable_table <- data.frame(variable_names, characteristic, dimension )
-
+variable_table <- variable_table %>% unite(char_dim,characteristic:dimension, sep = "_", remove = FALSE)
 #Function for accessing variable name
 get_variable_name <- function (characteristic_of_interest = "Area", dimension_of_interest = "Mean"){
     variable_name_desired<- variable_table %>% 
@@ -251,18 +251,31 @@ table_ns
         graph 
     })  # end of graphical summary section
 
-#Begin Modelling 
-    #Data splitting using caret
-
+#Begin Modelling and Prediction
     observe({
-      input$data_split 
-    #split dataset
-     set.seed(14641) #reproducibility of splitting
-      train_index <-createDataPartition(tumor_data$Diagnosis, input$data_split, list=TRUE)
-      tumor_data_train <- tumor_data[train_index[[1]],]
-      tumor_data_test <- tumor_data[-train_index[[1]],]
-
         observeEvent(input$model_now,{
+          #Data splitting using caret
+          split <- input$data_split/100
+
+          #split dataset
+          set.seed(14641) #reproducibility of splitting
+          train_index <-createDataPartition(tumor_data$Diagnosis, p=split, list=TRUE)
+          tumor_data_train <- tumor_data[train_index[[1]],]
+          tumor_data_test <- tumor_data[-train_index[[1]],]
+          
+          
+          
+          #Reset prediction statements when another model is done.
+          output$glm_predict_benign <- renderText(" ")
+          output$glm_predict_malignant <- renderText(" ")
+          output$rf_predict_benign <- renderText(" ")
+          output$rf_predict_malignant <- renderText(" ")
+          output$glm_variables1 <- renderText(" ")
+          output$glm_variables2 <- renderText(" ")
+          
+          methods_used <-input$model_to_use
+          output$methods_for_prediction <- renderText((methods_used))
+          
         if(input$model_to_use=="Generalized Linear Regression" | input$model_to_use=="Both"){
 
         #Create equation for use with glm
@@ -287,42 +300,118 @@ table_ns
                          preProcess = c("center", "scale"),
                          trControl= trainControl(method="cv", number=5)
         )
-        
-          output$test_text2 <- renderPrint({
-          head(tumor_data_test)
-            })
-        #Prediction for use with accuracy
+
+        #Prediction on test set for use with accuracy determination
         pred_glm_acc <- predict(fit_glm, newdata = tumor_data_test)
         pred_glm_acc_results <- confusionMatrix(data = tumor_data_test$Diagnosis,
                                                  reference = pred_glm_acc)
-         output$glm_test_acc <- renderText({
-              paste0("The accuracy of the GLM model in predicting the test set is ",
-                     round(pred_glm_acc_results$overall[1]*100,1) , "%.")})
 
-                 #output summary for glm
+        #output summary for glm
         output$glm_summary <- renderPrint({summary(fit_glm)})
-
-        #output accuracy statement for glm
-        output$glm_test_output <- renderText({
-            paste0("The GLM Model accuracy on the training set is ", round(fit_glm[[4]][2]*100,1) , "%.")
-           })
+        
         output$glm_test_output <- renderText({
           paste0("The accuracy of the GLM model in predicting the training set is ",
                  round(fit_glm[[4]][2]*100,1) , "%.")
         })
         
-        #Reset random forest outputs when GLM only selected
+        output$glm_test_acc <- renderText({
+          paste0("The accuracy of the GLM model in predicting the test set is ",
+                 round(pred_glm_acc_results$overall[1]*100,1) , "%.")})
+
+            #Reset random forest outputs when GLM only selected
         if (input$model_to_use=="Generalized Linear Regression"){
             output$rf_var_imp <- renderPlot({})
             output$rf_mtry <- renderText({" "})
-            output$rf_test_output <- renderText({("Random Forest was not selected.")})
+            output$rf_not_performed <- renderText({("Random Forest was not selected.")})
+            output$rf_test_output <- renderText({("")})
             output$rf_test_acc <- renderText({" "})
         } #end of reset random forest outputs
+        
+        #Reset prediction statements
+        output$glm_predict_benign <- renderText(" ")
+        output$glm_predict_malignant <- renderText(" ")
+        output$rf_predict_benign <- renderText(" ")
+        output$rf_predict_malignant <- renderText(" ")
+        
+        # #Prepare list of variables used in fitting to display in prediction tab
+        var_list_glm <- fit_glm[[23]]
+        var_list_display <- c()
+        for (i in 1:length(var_list_glm)){
+          var_list_display[i] <- variable_table[which(variable_table$original_name == var_list_glm[i]),2]
+        }
+
+         var_list_collapsed <- paste(var_list_display, collapse = " + ")
+        output$glm_variables1 <- renderText("The variables used in the generalized regression model were: ") 
+        output$glm_variables2 <- renderText(paste(var_list_collapsed))
+        
+        #Prediction
+        observeEvent(input$predict_now,{
+          output$glm_predict <- renderText("")
+#          if (methods_used =="Random Forest") {
+          output$rf_predict_benign <- renderText("")
+          output$rf_predict_malignant <- renderText("")
+          #}
+          output$glm_predict_benign <- renderText("")
+          output$glm_predict_malignant <- renderText("")
+          
+          if(methods_used== "Generalized Linear Regression" | methods_used == "Both"){
+          values_for_pred <- data_frame(x.radius_mean = input$radius_mean, 
+                                        x.texture_mean = input$texture_mean, 
+                                        x.perimeter_mean= input$perimeter_mean, 
+                                        x.area_mean = input$area_mean,
+                                        x.smoothness_mean = input$smoothness_mean, 
+                                        x.compactness_mean =input$compactness_mean,
+                                        x.concavity_mean =input$concavity_mean,
+                                        x.concave_pts_mean = input$cp_mean,
+                                        x.symmetry_mean =input$symmetry_mean,
+                                        x.fractal_dim_mean =input$fd_mean,
+                                        x.radius_se = input$radius_se, 
+                                        x.texture_se = input$texture_se, 
+                                        x.perimeter_se= input$perimeter_se,
+                                        x.area_se = input$area_se,
+                                        x.smoothness_se = input$smoothness_se,
+                                        x.compactness_se =input$compactness_se,
+                                        x.concavity_se =input$concavity_se,
+                                        x.concave_pts_se = input$cp_se,
+                                        x.symmetry_se =input$symmetry_se,
+                                        x.fractal_dim_se =input$fd_se,
+                                        x.radius_worst = input$radius_worst, 
+                                        x.texture_worst = input$texture_worst, 
+                                        x.perimeter_worst= input$perimeter_worst,
+                                        x.area_worst = input$area_worst,
+                                        x.smoothness_worst = input$smoothness_worst,
+                                        x.compactness_worst =input$compactness_worst,
+                                        x.concavity_worst =input$concavity_worst,
+                                        x.concave_pts_worst = input$cp_worst,
+                                        x.symmetry_worst =input$symmetry_worst,
+                                        x.fractal_dim_worst =input$fd_worst)
+
+
+            predict_glm_prob <- predict(fit_glm, newdata = values_for_pred, type="prob")
+            predict_glm_diagnosis <- if_else (predict_glm_prob$Benign> 0.5, "Benign", "Malignant")
+            
+
+            
+            if (predict_glm_diagnosis == "Benign"){
+              output$glm_predict_benign<- renderText(paste0("For the given values for predictors, 
+                                                 the fit from the generalized linear model predicts ",
+                                                           predict_glm_diagnosis, "."))
+              output$glm_predict_malignant<- renderText(paste0(""))
+            }
+            
+            if (predict_glm_diagnosis == "Malignant"){
+              output$glm_predict_malignant<- renderText(paste0("For the given values for predictors, 
+                                                 the fit from the generalized linear model predicts ",
+                                                              predict_glm_diagnosis, "."))
+              output$glm_predict_benign<- renderText(paste0(""))}
+} #end of predict if glm or both
+          }) # end of observe event for predict
 
         } #end of glm or both
 
             
         if(input$model_to_use=="Random Forest" | input$model_to_use=="Both"){
+          output$rf_not_performed <- renderText({("")})
         
         #Equation formula random forest
           
@@ -356,8 +445,12 @@ table_ns
           paste0("The optimized value for the number of variables randomly chosen at each branching (mtry) was ",
                   fit_rf$bestTune$mtry , ".")
         })
-       
-       #  #output accuracy statement for random forest
+        #Prediction for use with accuracy on test set
+        pred_rf_acc <- predict(fit_rf, newdata = tumor_data_test)
+        pred_rf_acc_results <- confusionMatrix(data = tumor_data_test$Diagnosis,
+                                               reference = pred_rf_acc)
+
+        #output accuracy statement for random forest training
         output$rf_test_output<- renderText({
             #Pull accuracy from fit results
             accuracy_rf <- fit_rf$results %>% select(mtry, Accuracy) %>%
@@ -365,59 +458,107 @@ table_ns
             paste0("The accuracy of the random forest model on the training set ",
                    "using the optimized mtry was ", round((accuracy_rf*100),1), "%.")
         })
-        
-        #Prediction for use with accuracy on test set
-        pred_rf_acc <- predict(fit_rf, newdata = tumor_data_test)
-        pred_rf_acc_results <- confusionMatrix(data = tumor_data_test$Diagnosis,
-                                                reference = pred_rf_acc)
+        #output accuracy statement for random forest testing
         output$rf_test_acc <- renderText({
           paste0("The accuracy of the random forest model in predicting the test set is ",
                  round(pred_rf_acc_results$overall[1]*100,1) , "%.")})
         
-#Reset GLM outputs when random forest only is run.
-                if (input$model_to_use=="Random Forest"){
+        #Reset GLM outputs when random forest only is run.
+        if (input$model_to_use=="Random Forest"){
           output$glm_test_output <- renderText({("The generalized linear model was not selected.")})
           output$glm_summary <- renderPrint({invisible()})
           output$glm_test_acc <- renderText({" "})
-        }
-       #Generate variable importance plot. Diagnosis will need converting to numeric.
-#       tumor_data_train_2 <- tumor_data_train  %>%
-#           mutate(y_bin = if_else(Diagnosis=="M",1,0))
-#       tumor_data_train_2$y_bin <-as_factor(tumor_data_train_2$y_bin )
 
-        tumor_data_train_3 <- tumor_data_train
-        tumor_data_train_3$Diagnosis <- as.factor(tumor_data_train_3$Diagnosis)
-                outcome2 <- "Diagnosis"
+        }
+        
+       #Generate variable importance plot. Diagnosis will need converting to factor.
+        tumor_data_train_2 <- tumor_data_train
+        tumor_data_train_2$Diagnosis <- as.factor(tumor_data_train_2$Diagnosis)
+        outcome2 <- "Diagnosis"
 
         formula_rf_2 <- as.formula(paste (outcome2,
                                           paste(variables_rf, collapse = " + "),
                                           sep = " ~ "))
 
-
-
+        #Output variable importance plot
         output$rf_var_imp <- renderPlot({
-        tumor_rf<-randomForest(formula_rf_2, data=tumor_data_train_3, mtry=fit_rf$bestTune$mtry, importance =TRUE)
+        tumor_rf<-randomForest(formula_rf_2, data=tumor_data_train_2, mtry=fit_rf$bestTune$mtry, importance =TRUE)
         varImpPlot(tumor_rf, main="Variable Importance Plot")
-       })
+        }) #end of variable importance plot
+        
+        #Reset prediction statements
+        output$glm_predict_benign <- renderText(" ")
+        output$glm_predict_malignant <- renderText(" ")
+        output$rf_predict_malignant <- renderText(" ")
+        output$glm_predict_benign <- renderText(" ")
+        
+        #Perform prediction
+        observeEvent(input$predict_now,{
+          output$rf_predict_benign <- renderText("")
+          output$rf_predict_malignant <- renderText("")
+          if (methods_used !="Both") {
+          output$glm_predict_benign <- renderText("")
+          output$glm_predict_malignant <- renderText("")}
+          if(methods_used== "Random Forest" | methods_used == "Both"){
+          values_for_pred <- data_frame(x.radius_mean = input$radius_mean, 
+                                        x.texture_mean = input$texture_mean, 
+                                        x.perimeter_mean= input$perimeter_mean, 
+                                        x.area_mean = input$area_mean,
+                                        x.smoothness_mean = input$smoothness_mean, 
+                                        x.compactness_mean =input$compactness_mean,
+                                        x.concavity_mean =input$concavity_mean,
+                                        x.concave_pts_mean = input$cp_mean,
+                                        x.symmetry_mean =input$symmetry_mean,
+                                        x.fractal_dim_mean =input$fd_mean,
+                                        x.radius_se = input$radius_se, 
+                                        x.texture_se = input$texture_se, 
+                                        x.perimeter_se= input$perimeter_se,
+                                        x.area_se = input$area_se,
+                                        x.smoothness_se = input$smoothness_se,
+                                        x.compactness_se =input$compactness_se,
+                                        x.concavity_se =input$concavity_se,
+                                        x.concave_pts_se = input$cp_se,
+                                        x.symmetry_se =input$symmetry_se,
+                                        x.fractal_dim_se =input$fd_se,
+                                        x.radius_worst = input$radius_worst, 
+                                        x.texture_worst = input$texture_worst, 
+                                        x.perimeter_worst= input$perimeter_worst,
+                                        x.area_worst = input$area_worst,
+                                        x.smoothness_worst = input$smoothness_worst,
+                                        x.compactness_worst =input$compactness_worst,
+                                        x.concavity_worst =input$concavity_worst,
+                                        x.concave_pts_worst = input$cp_worst,
+                                        x.symmetry_worst =input$symmetry_worst,
+                                        x.fractal_dim_worst =input$fd_worst)
+          
+          
+          predict_rf_prob <- predict(fit_rf, newdata = values_for_pred, type="prob")
+          predict_rf_diagnosis <- if_else (predict_rf_prob$Benign> 0.5, "Benign", "Malignant")
+          
+          if (predict_rf_diagnosis == "Benign"){
+            output$rf_predict_benign<- renderText(paste0("For the given values for predictors, 
+                                                 the fit from the random forest model predicts ",
+                                                 predict_rf_diagnosis, "."))
+            output$rf_predict_malignant<- renderText(paste0(""))
+          }
+          
+          if (predict_rf_diagnosis == "Malignant"){
+            output$rf_predict_malignant<- renderText(paste0("For the given values for predictors, 
+                                                 the fit from the random forest model predicts ",
+                                                 predict_rf_diagnosis, "."))
+            output$rf_predict_benign<- renderText(paste0(""))
+          }
+
+}
+        })
+        
         } # end if random forest or both
         })# end observe event
-    
-        # 
-        # output$test_text2 <- renderPrint({
-
-        #   })
-        #get variable name
-#         variable_for_summ <- variable_table %>% 
-#             filter(characteristic == input$char_of_interest_ns) %>%
-#             filter (dimension == input$dim_of_interest_ns) %>%
-#             select (original_name)
-# #        
-#         paste("The variable is", variable_for_summ)
-#          variable_for_summ
-#        table <- summary(variable_for_summ)
-#        table
-      
-    })
+        
 
 
-})
+
+    })#end observe
+
+
+})#end server
