@@ -65,7 +65,7 @@ First make sure all packages are installed and loaded.
 
 Then use this code:
 Shiny::runGitHub(repo= “ST-558-Project4-Shiny-App“, 
-username = “nc-callender”
-“ref=main”
+username = “nc-callender”,
+“ref=main”,
 Subdir = “BrestTumorApp“)
 
