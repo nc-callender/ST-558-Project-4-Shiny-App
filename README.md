@@ -67,5 +67,5 @@ Then use this code:
 shiny::runGitHub(repo= "ST-558-Project4-Shiny-App", 
 username = "nc-callender",
 ref="main",
-subdir = "BrestTumorApp")
+subdir = "BreastTumorApp")
 
