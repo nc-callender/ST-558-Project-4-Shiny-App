@@ -406,6 +406,9 @@ shinyServer(function(input, output, session) {
 
             
             if(input$model_to_use=="Random Forest" | input$model_to_use=="Both"){
+
+                #clear rf not performed statement
+                output$rf_not_performed <- renderText({(" ")})
         
                 #Equation formula random forest
                 #Create equation for use with glm
@@ -457,11 +460,12 @@ shinyServer(function(input, output, session) {
                 paste0("The accuracy of the random forest model in predicting the test set is ",
                        round(pred_rf_acc_results$overall[1]*100,1) , "%.")})
         
-               #Reset GLM outputs when random forest only is run. (Get rid of ghosts from previous models)
+               #Reset outputs when random forest only is run. (Get rid of ghosts from previous models)
                 if (input$model_to_use=="Random Forest"){
                     output$glm_test_output <- renderText({("The generalized linear model was not selected.")})
                     output$glm_summary <- renderPrint({invisible()})
                     output$glm_test_acc <- renderText({" "})
+                    output$rf_not_performed <- renderText({(" ")})
                 }
         
                 #Generate variable importance plot. Diagnosis will need converting to factor.

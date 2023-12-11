@@ -183,7 +183,7 @@ ui<-dashboardPage(skin = "blue",
 
             #Model Fitting: Generalized Linear Regression Inputs
             box(width = 12, strong("Generalized Linear Regression Input"),
-              p("Modelling works best when there is not a large amount of correlation between predictors. For that reason, the user can pick only one of the three related characteristics: radius, perimeter, and area. For each tumor characteristic below, select the dimension to use in the model."), 
+              p("Modelling works best when there is not a large amount of correlation between predictors. For that reason, the user can pick only one of the three size related characteristics: radius, perimeter, and area. For each tumor characteristic below, select the dimension to use in the model."), 
               fluidRow(column(5, 
                 pickerInput("size_glm", "Size Characteristic", 
                             c("Radius" = "x.radius", "Area" = "x.area", "Perimeter" = "x.perimeter"), 
